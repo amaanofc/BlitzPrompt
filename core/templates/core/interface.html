@@ -534,12 +534,16 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
     
     const formData = new FormData(this);
     
+    // Add a timestamp to prevent caching
+    formData.append('timestamp', Date.now());
+    
     fetch('{% url "create_prompt" %}', {
         method: 'POST',
         body: formData,
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
+        },
+        cache: 'no-store'
     })
     .then(response => response.json())
     .then(data => {
@@ -548,49 +552,54 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
         submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Prompt';
         
         if (data.success) {
-            alert('Prompt created successfully!');
+            const isExisting = data.message && data.message.includes('already exists');
+            const alertMessage = isExisting ? 'This prompt already exists and has been added to your favorites.' : 'Prompt created successfully!';
             
-            // Add the new prompt to favorites list and dropdown
+            alert(alertMessage);
+            
+            // Add the prompt to favorites list and dropdown if not already there
             const title = formData.get('title');
             const content = formData.get('content');
             const promptId = data.prompt_id;
             
-            // Add to favorites sidebar
-            const listGroup = document.querySelector('.list-group');
-            const newPromptItem = document.createElement('a');
-            newPromptItem.href = '#';
-            newPromptItem.className = 'list-group-item list-group-item-action';
-            newPromptItem.textContent = title;
-            newPromptItem.setAttribute('onclick', `setPrompt('${promptId}', '${title}', '${content.replace(/'/g, "\\'")}')`);
-            listGroup.appendChild(newPromptItem);
+            // Check if the prompt is already in the favorites list
+            const existingListItem = Array.from(document.querySelectorAll('.list-group-item')).find(
+                item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+            );
             
-            // Add to dropdown
+            if (!existingListItem) {
+                // Add to favorites sidebar
+                const listGroup = document.querySelector('.list-group');
+                const newPromptItem = document.createElement('a');
+                newPromptItem.href = '#';
+                newPromptItem.className = 'list-group-item list-group-item-action';
+                newPromptItem.textContent = title;
+                newPromptItem.setAttribute('onclick', `setPrompt('${promptId}', '${title}', '${content.replace(/'/g, "\\'")}')`);
+                listGroup.appendChild(newPromptItem);
+            }
+            
+            // Check if the prompt is already in the dropdown
             const promptSelect = document.getElementById('prompt-select');
-            const option = document.createElement('option');
-            option.value = promptId;
-            option.textContent = title;
-            promptSelect.appendChild(option);
+            const existingOption = Array.from(promptSelect.options).find(option => option.value === promptId.toString());
             
-            // Select the new prompt
+            if (!existingOption) {
+                // Add to dropdown
+                const option = document.createElement('option');
+                option.value = promptId;
+                option.textContent = title;
+                promptSelect.appendChild(option);
+            }
+            
+            // Select the prompt
             promptSelect.value = promptId;
             handlePromptSelect(promptId);
             
-            // Clear the form
-            this.reset();
+            // Clear the form only if it's a new prompt
+            if (!isExisting) {
+                this.reset();
+            }
             
-            // Show a message about publishing
-            const createTab = document.getElementById('create');
-            const publishMessage = document.createElement('div');
-            publishMessage.className = 'alert alert-success mt-3';
-            publishMessage.innerHTML = '<i class="fas fa-info-circle me-2"></i>Your prompt has been created and automatically added to your favorites. To make it available to others, use the "Publish to Library" button when viewing the prompt.';
-            createTab.querySelector('.create-prompt-section').appendChild(publishMessage);
-            
-            // Remove the message after 10 seconds
-            setTimeout(() => {
-                publishMessage.remove();
-            }, 10000);
-            
-            // Switch to chat tab and select the new prompt
+            // Switch to chat tab and select the prompt
             document.getElementById('chat-tab').click();
         } else {
             alert('Error creating prompt: ' + data.error);

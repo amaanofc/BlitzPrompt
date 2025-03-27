@@ -63,9 +63,20 @@ def prompt_library(request):
 def prompt_detail(request, prompt_id):
     prompt = get_object_or_404(Prompt, id=prompt_id, published=True)
     comments = prompt.comments.filter(parent=None).order_by('-created_at')
+    
+    # Get user's current vote if any
+    user_vote = 0
+    if request.user.is_authenticated:
+        try:
+            vote = Vote.objects.get(user=request.user, prompt=prompt)
+            user_vote = vote.value
+        except Vote.DoesNotExist:
+            pass
+    
     return render(request, 'core/prompt_detail.html', {
         'prompt': prompt,
-        'comments': comments
+        'comments': comments,
+        'user_vote': user_vote
     })
 
 @login_required
@@ -196,21 +207,26 @@ def toggle_favorite(request, prompt_id):
     try:
         prompt = Prompt.objects.get(id=prompt_id)
         
-        # Check if the prompt is already in favorites
-        is_favorited = request.user.favorites.filter(id=prompt_id).exists()
-        
-        if is_favorited:
-            # Remove from favorites
-            request.user.favorites.remove(prompt)
-            is_favorited = False
-        else:
-            # Add to favorites - using set() instead of add() to prevent duplicates
-            request.user.favorites.set([prompt], clear=False)
-            is_favorited = True
+        # Use a transaction to prevent race conditions
+        with transaction.atomic():
+            # Check if the prompt is already in favorites
+            is_favorited = request.user.favorites.filter(id=prompt_id).exists()
+            
+            if is_favorited:
+                # Remove from favorites
+                request.user.favorites.remove(prompt)
+                is_favorited = False
+            else:
+                # Add to favorites, but avoid using add() which can create duplicates
+                if not request.user.favorites.filter(id=prompt_id).exists():
+                    request.user.favorites.add(prompt)
+                is_favorited = True
             
         return JsonResponse({'is_favorited': is_favorited})
     except Prompt.DoesNotExist:
         return JsonResponse({'error': 'Prompt not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 def publish_prompt(request, prompt_id):
@@ -229,32 +245,66 @@ def publish_prompt(request, prompt_id):
 @login_required
 def vote_prompt(request, prompt_id):
     try:
+        # Ensure we have a valid prompt
         prompt = Prompt.objects.get(id=prompt_id)
-        value = int(request.POST.get('value', 0))
         
-        if value not in [-1, 0, 1]:
-            return JsonResponse({'error': 'Invalid vote value'}, status=400)
+        # Get vote value from different request types
+        value = None
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                data = json.loads(request.body)
+                value = int(data.get('value', 0))
+            except json.JSONDecodeError:
+                pass
+        elif request.content_type and 'multipart/form-data' in request.content_type:
+            value = int(request.POST.get('value', 0))
+        else:
+            # Fall back to regular POST data
+            value = int(request.POST.get('value', 0))
+        
+        # Validation
+        if value is None:
+            return JsonResponse({'error': 'No vote value provided'}, status=400)
             
-        vote, created = Vote.objects.get_or_create(
-            user=request.user,
-            prompt=prompt,
-            defaults={'value': value}
-        )
+        if value not in [-1, 0, 1]:
+            return JsonResponse({'error': 'Invalid vote value, must be -1, 0, or 1'}, status=400)
         
-        if not created:
+        # Use a transaction to prevent race conditions
+        with transaction.atomic():
+            # Get or create the vote
             if value == 0:
-                vote.delete()
+                # Just delete any existing vote
+                Vote.objects.filter(user=request.user, prompt=prompt).delete()
+                current_vote = 0
             else:
-                vote.value = value
-                vote.save()
+                # Get or create vote with proper value
+                vote, created = Vote.objects.get_or_create(
+                    user=request.user,
+                    prompt=prompt,
+                    defaults={'value': value}
+                )
                 
-        prompt.update_vote_count()
+                # If vote exists but value changed, update it
+                if not created and vote.value != value:
+                    vote.value = value
+                    vote.save()
+                
+                current_vote = value
+                    
+            # Update the total vote count on the prompt
+            prompt.update_vote_count()
+            
+        # Return the updated values    
         return JsonResponse({
             'total_votes': prompt.total_votes,
-            'user_vote': value
+            'user_vote': current_vote
         })
     except Prompt.DoesNotExist:
         return JsonResponse({'error': 'Prompt not found'}, status=404)
+    except ValueError as e:
+        return JsonResponse({'error': f'Invalid vote value: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
 
 @login_required
 def add_comment(request, prompt_id):
@@ -334,45 +384,61 @@ def create_prompt(request):
                     'error': 'Title and content are required'
                 }, status=400)
             
-            # Try to create the prompt with retries
-            max_retries = 3
-            retry_count = 0
-            while retry_count < max_retries:
-                try:
-                    with transaction.atomic():
-                        # Create the prompt
-                        prompt = Prompt.objects.create(
-                            title=title,
-                            content=content,
-                            description=description,
-                            author=request.user,
-                            is_priming=is_priming,
-                            priming_order=priming_order
-                        )
-                        
-                        # Add categories if any
-                        if categories:
-                            prompt.categories.set(categories)
-                        
-                        # If it's a priming prompt, add to favorites automatically
-                        if is_priming:
-                            request.user.favorites.add(prompt)
-                        
-                        return JsonResponse({
-                            'success': True,
-                            'prompt_id': prompt.id,
-                            'message': 'Prompt created successfully'
-                        })
-                except Exception as e:
-                    retry_count += 1
-                    if retry_count == max_retries:
-                        return JsonResponse({
-                            'success': False,
-                            'error': f'Error creating prompt after {max_retries} attempts: {str(e)}'
-                        }, status=500)
-                    # Wait a bit before retrying
-                    time.sleep(0.5)
+            # First check if an identical prompt exists
+            existing_prompt = Prompt.objects.filter(
+                title=title,
+                content=content,
+                author=request.user
+            ).first()
             
+            if existing_prompt:
+                # Don't create a new one, just return the existing one
+                return JsonResponse({
+                    'success': True,
+                    'prompt_id': existing_prompt.id,
+                    'message': 'Prompt already exists'
+                })
+            
+            # Create the prompt in a transaction to prevent duplicates
+            with transaction.atomic():
+                # Double-check within transaction to prevent race conditions
+                existing_prompt = Prompt.objects.filter(
+                    title=title,
+                    content=content,
+                    author=request.user
+                ).first()
+                
+                if existing_prompt:
+                    return JsonResponse({
+                        'success': True,
+                        'prompt_id': existing_prompt.id,
+                        'message': 'Prompt already exists'
+                    })
+                
+                # Create the prompt
+                prompt = Prompt.objects.create(
+                    title=title,
+                    content=content,
+                    description=description,
+                    author=request.user,
+                    is_priming=is_priming,
+                    priming_order=priming_order
+                )
+                
+                # Add categories if any
+                if categories:
+                    prompt.categories.set(categories)
+                
+                # If it's a priming prompt, add to favorites automatically
+                if is_priming:
+                    request.user.favorites.add(prompt)
+                
+                return JsonResponse({
+                    'success': True,
+                    'prompt_id': prompt.id,
+                    'message': 'Prompt created successfully'
+                })
+                
         except Exception as e:
             return JsonResponse({
                 'success': False,

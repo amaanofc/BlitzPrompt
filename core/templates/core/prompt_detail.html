@@ -7,7 +7,7 @@
         <h1 class="card-title">{{ prompt.title }}</h1>
         <div class="btn-group">
           <button
-            class="btn btn-sm btn-outline-primary vote-btn"
+            class="btn btn-sm btn-outline-primary vote-btn {% if user_vote == 1 %}active{% endif %}"
             data-prompt-id="{{ prompt.id }}"
             data-value="1"
           >
@@ -15,7 +15,7 @@
           </button>
           <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
           <button
-            class="btn btn-sm btn-outline-danger vote-btn"
+            class="btn btn-sm btn-outline-danger vote-btn {% if user_vote == -1 %}active{% endif %}"
             data-prompt-id="{{ prompt.id }}"
             data-value="-1"
           >
@@ -167,43 +167,78 @@
 {% block extra_js %}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // Add CSRF token to all fetch requests
+    const csrfToken = document.querySelector(
+      "[name=csrfmiddlewaretoken]"
+    ).value;
+
     // Voting functionality
     const voteButtons = document.querySelectorAll(".vote-btn");
     voteButtons.forEach((button) => {
-      button.addEventListener("click", async function () {
+      button.addEventListener("click", function (e) {
+        e.preventDefault(); // Prevent default button behavior
+
         const promptId = this.dataset.promptId;
         const value = parseInt(this.dataset.value);
         const voteCount = this.parentElement.querySelector(".vote-count");
+        const upButton = this.parentElement.querySelector('[data-value="1"]');
+        const downButton =
+          this.parentElement.querySelector('[data-value="-1"]');
 
-        try {
-          const response = await fetch(`/vote-prompt/${promptId}/`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              "X-CSRFToken": document.querySelector(
-                "[name=csrfmiddlewaretoken]"
-              ).value,
-            },
-            body: `value=${value}`,
-          });
+        // Visual feedback - show loading state
+        this.disabled = true;
+        const originalContent = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-          const data = await response.json();
-          if (response.ok) {
+        // Check if the button is already active (user already voted this way)
+        const isActive = this.classList.contains("active");
+        // If clicking an active button, send 0 (remove vote), otherwise send the button's value
+        const voteValue = isActive ? 0 : value;
+
+        // Create FormData for the request
+        const formData = new FormData();
+        formData.append("value", voteValue);
+
+        fetch(`/vote-prompt/${promptId}/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken,
+          },
+          body: formData,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            // Update the vote count
             voteCount.textContent = data.total_votes;
 
-            voteButtons.forEach((btn) => {
-              if (btn.dataset.promptId === promptId) {
-                if (parseInt(btn.dataset.value) === data.user_vote) {
-                  btn.classList.add("active");
-                } else {
-                  btn.classList.remove("active");
-                }
-              }
-            });
-          }
-        } catch (error) {
-          console.error("Error voting:", error);
-        }
+            // Reset active states on both buttons
+            upButton.classList.remove("active");
+            downButton.classList.remove("active");
+
+            // Set active state based on server response
+            if (data.user_vote === 1) {
+              upButton.classList.add("active");
+            } else if (data.user_vote === -1) {
+              downButton.classList.add("active");
+            }
+
+            // Reset button state
+            this.innerHTML = originalContent;
+            this.disabled = false;
+          })
+          .catch((error) => {
+            console.error("Error voting:", error);
+            alert("Error voting. Please try again.");
+
+            // Reset button state
+            this.innerHTML = originalContent;
+            this.disabled = false;
+          });
       });
     });
 
