@@ -18,40 +18,161 @@
       rel="stylesheet"
     />
 
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Custom CSS -->
     <style>
+      :root {
+        --primary-color: #ff0000;
+        --primary-dark: #cc0000;
+        --secondary-color: #1a1a1a;
+        --accent-color: #ff3333;
+        --text-color: #ffffff;
+        --text-muted: #a0a0a0;
+        --bg-dark: #121212;
+        --bg-darker: #0a0a0a;
+        --card-bg: #1e1e1e;
+      }
+
       body {
-        background-color: #f8f9fa;
+        background-color: var(--bg-dark);
+        color: var(--text-color);
+        font-family: "Inter", sans-serif;
       }
+
+      .navbar {
+        background-color: var(--bg-darker) !important;
+        border-bottom: 1px solid rgba(255, 0, 0, 0.1);
+      }
+
+      .navbar-brand {
+        color: var(--primary-color) !important;
+        font-weight: 700;
+        font-size: 1.5rem;
+      }
+
+      .nav-link {
+        color: var(--text-color) !important;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .nav-link:hover {
+        color: var(--primary-color) !important;
+      }
+
       .card {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: var(--card-bg);
+        border: 1px solid rgba(255, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
       }
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(255, 0, 0, 0.1);
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+      }
+
+      .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .form-control {
+        background-color: var(--bg-darker);
+        border: 1px solid rgba(255, 0, 0, 0.2);
+        color: var(--text-color);
+      }
+
+      .form-control:focus {
+        background-color: var(--bg-darker);
+        border-color: var(--primary-color);
+        color: var(--text-color);
+        box-shadow: 0 0 0 0.25rem rgba(255, 0, 0, 0.25);
+      }
+
       .vote-btn.active {
-        background-color: var(--bs-primary);
+        background-color: var(--primary-color);
         color: white;
       }
+
       .vote-btn.active.btn-outline-danger {
-        background-color: var(--bs-danger);
+        background-color: var(--accent-color);
       }
+
       .response-content {
         white-space: pre-wrap;
         font-family: "Courier New", Courier, monospace;
+        background-color: var(--bg-darker);
+        padding: 1rem;
+        border-radius: 0.5rem;
       }
+
       .comment-card,
       .reply-card {
-        border-left: 3px solid var(--bs-primary);
+        border-left: 3px solid var(--primary-color);
       }
+
       .replies {
-        border-left: 2px solid #dee2e6;
+        border-left: 2px solid rgba(255, 0, 0, 0.2);
+      }
+
+      .footer {
+        background-color: var(--bg-darker);
+        border-top: 1px solid rgba(255, 0, 0, 0.1);
+      }
+
+      .text-muted {
+        color: var(--text-muted) !important;
+      }
+
+      .badge {
+        background-color: var(--primary-color);
+      }
+
+      .list-group-item {
+        background-color: var(--card-bg);
+        border-color: rgba(255, 0, 0, 0.1);
+        color: var(--text-color);
+      }
+
+      .list-group-item:hover {
+        background-color: var(--bg-darker);
+      }
+
+      .list-group-item.active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
       }
     </style>
   </head>
 
   <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'home' %}">BlitzPrompt</a>
+        <a class="navbar-brand" href="{% url 'home' %}">
+          <i class="fas fa-bolt me-2"></i>BlitzPrompt
+        </a>
         <button
           class="navbar-toggler"
           type="button"
@@ -63,28 +184,55 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'interface' %}">Interface</a>
+              <a class="nav-link" href="{% url 'interface' %}">
+                <i class="fas fa-robot me-1"></i>Interface
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'prompt_library' %}"
-                >Prompt Library</a
-              >
+              <a class="nav-link" href="{% url 'prompt_library' %}">
+                <i class="fas fa-book me-1"></i>Library
+              </a>
             </li>
           </ul>
           <ul class="navbar-nav">
             {% if user.is_authenticated %}
-            <li class="nav-item">
-              <span class="nav-link">Welcome, {{ user.username }}</span>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="navbarDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+              >
+                <i class="fas fa-user me-1"></i>{{ user.username }}
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="{% url 'profile' %}"
+                    >Profile</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'favorites' %}"
+                    >Favorites</a
+                  >
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+                </li>
+              </ul>
             </li>
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Login</a>
+              <a class="nav-link" href="{% url 'login' %}">
+                <i class="fas fa-sign-in-alt me-1"></i>Login
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
+              <a class="nav-link" href="{% url 'signup' %}">
+                <i class="fas fa-user-plus me-1"></i>Sign Up
+              </a>
             </li>
             {% endif %}
           </ul>
@@ -96,7 +244,7 @@
     <main class="py-4">{% block content %}{% endblock %}</main>
 
     <!-- Footer -->
-    <footer class="footer mt-auto py-3 bg-light">
+    <footer class="footer mt-auto py-3">
       <div class="container text-center">
         <span class="text-muted">© 2024 BlitzPrompt. All rights reserved.</span>
       </div>

@@ -1,15 +1,265 @@
+{% extends 'core/base.html' %} {% load static %} {% block content %}
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <title>BlitzPrompt</title>
-</head>
+  </head>
 
-<body>
-    {% extends 'base.html' %}
-    {% block content %}
-    <h1>Welcome to BlitzPrompt!</h1>
+  <body>
+    <!-- Hero Section -->
+    <section class="hero-section py-5">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-lg-6">
+            <h1 class="display-4 fw-bold mb-4">
+              Supercharge Your AI Interactions
+            </h1>
+            <p class="lead mb-4">
+              Access a curated library of powerful prompts, interact with
+              DeepSeek AI, and share your own prompts with the community.
+            </p>
+            <div class="d-flex gap-3">
+              <a href="{% url 'interface' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-robot me-2"></i>Start Chatting
+              </a>
+              <a
+                href="{% url 'prompt_library' %}"
+                class="btn btn-outline-primary btn-lg"
+              >
+                <i class="fas fa-book me-2"></i>Browse Library
+              </a>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card p-4">
+              <div class="code-preview">
+                <pre class="text-light"><code>// Example Prompt
+const prompt = `You are an expert programmer.
+Help me debug this code:
+${userCode}`;</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trending Prompts -->
+    <section class="trending-section py-5 bg-darker">
+      <div class="container">
+        <h2 class="text-center mb-5">Trending Prompts</h2>
+        <div class="row">
+          {% for prompt in trending_prompts %}
+          <div class="col-md-4 mb-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">{{ prompt.title }}</h5>
+                <p class="card-text text-muted">
+                  {{ prompt.description|truncatewords:30 }}
+                </p>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="btn-group">
+                    <button
+                      class="btn btn-sm btn-outline-primary vote-btn"
+                      data-prompt-id="{{ prompt.id }}"
+                      data-value="1"
+                    >
+                      <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <span class="mx-2 vote-count"
+                      >{{ prompt.total_votes }}</span
+                    >
+                    <button
+                      class="btn btn-sm btn-outline-danger vote-btn"
+                      data-prompt-id="{{ prompt.id }}"
+                      data-value="-1"
+                    >
+                      <i class="fas fa-arrow-down"></i>
+                    </button>
+                  </div>
+                  <small class="text-muted"
+                    >{{ prompt.total_comments }} comments</small
+                  >
+                </div>
+                <div class="mt-2">
+                  {% for category in prompt.categories.all %}
+                  <span class="badge bg-secondary me-1"
+                    >{{ category.name }}</span
+                  >
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="card-footer">
+                <a
+                  href="{% url 'prompt_detail' prompt.id %}"
+                  class="btn btn-primary btn-sm w-100"
+                  >View Details</a
+                >
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="col-12">
+            <p class="text-center text-muted">
+              No trending prompts yet. Be the first to create one!
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works py-5">
+      <div class="container">
+        <h2 class="text-center mb-5">How It Works</h2>
+        <div class="row">
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <div class="feature-icon mb-3">
+                  <i class="fas fa-search fa-3x text-primary"></i>
+                </div>
+                <h3 class="h5">Browse & Search</h3>
+                <p class="text-muted">
+                  Explore our curated collection of prompts or search for
+                  specific ones using tags and categories.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <div class="feature-icon mb-3">
+                  <i class="fas fa-robot fa-3x text-primary"></i>
+                </div>
+                <h3 class="h5">Use DeepSeek</h3>
+                <p class="text-muted">
+                  Select a prompt and interact with DeepSeek AI to get
+                  intelligent responses to your queries.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <div class="feature-icon mb-3">
+                  <i class="fas fa-share-alt fa-3x text-primary"></i>
+                </div>
+                <h3 class="h5">Share & Contribute</h3>
+                <p class="text-muted">
+                  Share your own prompts, get feedback from the community, and
+                  help others improve their AI interactions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Access -->
+    <section class="quick-access py-5 bg-darker">
+      <div class="container">
+        <h2 class="text-center mb-5">Quick Access</h2>
+        <div class="row">
+          <div class="col-md-3 mb-4">
+            <a
+              href="{% url 'interface' %}"
+              class="card h-100 text-center text-decoration-none"
+            >
+              <div class="card-body">
+                <i class="fas fa-robot fa-2x text-primary mb-3"></i>
+                <h3 class="h5">New Chat</h3>
+                <p class="text-muted">Start a new conversation with DeepSeek</p>
+              </div>
+            </a>
+          </div>
+          <div class="col-md-3 mb-4">
+            <a
+              href="{% url 'prompt_library' %}"
+              class="card h-100 text-center text-decoration-none"
+            >
+              <div class="card-body">
+                <i class="fas fa-book fa-2x text-primary mb-3"></i>
+                <h3 class="h5">Prompt Library</h3>
+                <p class="text-muted">Browse all available prompts</p>
+              </div>
+            </a>
+          </div>
+          <div class="col-md-3 mb-4">
+            <a
+              href="{% url 'favorites' %}"
+              class="card h-100 text-center text-decoration-none"
+            >
+              <div class="card-body">
+                <i class="fas fa-star fa-2x text-primary mb-3"></i>
+                <h3 class="h5">Favorites</h3>
+                <p class="text-muted">Access your saved prompts</p>
+              </div>
+            </a>
+          </div>
+          <div class="col-md-3 mb-4">
+            <a
+              href="{% url 'profile' %}"
+              class="card h-100 text-center text-decoration-none"
+            >
+              <div class="card-body">
+                <i class="fas fa-user fa-2x text-primary mb-3"></i>
+                <h3 class="h5">Profile</h3>
+                <p class="text-muted">Manage your account</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    {% endblock %} {% block extra_js %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const voteButtons = document.querySelectorAll(".vote-btn");
+
+        voteButtons.forEach((button) => {
+          button.addEventListener("click", async function () {
+            const promptId = this.dataset.promptId;
+            const value = parseInt(this.dataset.value);
+            const voteCount = this.parentElement.querySelector(".vote-count");
+
+            try {
+              const response = await fetch(`/vote-prompt/${promptId}/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": document.querySelector(
+                    "[name=csrfmiddlewaretoken]"
+                  ).value,
+                },
+                body: JSON.stringify({ value: value }),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+                voteCount.textContent = data.total_votes;
+
+                voteButtons.forEach((btn) => {
+                  if (btn.dataset.promptId === promptId) {
+                    if (parseInt(btn.dataset.value) === data.user_vote) {
+                      btn.classList.add("active");
+                    } else {
+                      btn.classList.remove("active");
+                    }
+                  }
+                });
+              }
+            } catch (error) {
+              console.error("Error voting:", error);
+            }
+          });
+        });
+      });
+    </script>
     {% endblock %}
-</body>
-
+  </body>
 </html>

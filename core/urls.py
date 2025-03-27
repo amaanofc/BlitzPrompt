@@ -11,4 +11,6 @@ urlpatterns = [
     path('publish-prompt/<int:prompt_id>/', views.publish_prompt, name='publish_prompt'),
     path('vote-prompt/<int:prompt_id>/', views.vote_prompt, name='vote_prompt'),
     path('add-comment/<int:prompt_id>/', views.add_comment, name='add_comment'),
+    path('profile/', views.profile, name='profile'),
+    path('favorites/', views.favorites, name='favorites'),
 ] 

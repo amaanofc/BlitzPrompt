@@ -10,7 +10,12 @@ import requests
 from django.conf import settings
 
 def home(request):
-    return render(request, 'core/home.html')
+    # Get trending prompts (top 6 by votes)
+    trending_prompts = Prompt.objects.filter(published=True).order_by('-total_votes')[:6]
+    
+    return render(request, 'core/home.html', {
+        'trending_prompts': trending_prompts
+    })
 
 def signup(request):
     if request.method == 'POST':
@@ -209,3 +214,20 @@ def add_comment(request, prompt_id):
         return JsonResponse({'error': 'Prompt not found'}, status=404)
     except Comment.DoesNotExist:
         return JsonResponse({'error': 'Parent comment not found'}, status=404)
+
+@login_required
+def profile(request):
+    user_prompts = Prompt.objects.filter(author=request.user)
+    favorite_prompts = request.user.favorites.all()
+    
+    return render(request, 'core/profile.html', {
+        'user_prompts': user_prompts,
+        'favorite_prompts': favorite_prompts
+    })
+
+@login_required
+def favorites(request):
+    favorite_prompts = request.user.favorites.all()
+    return render(request, 'core/favorites.html', {
+        'favorite_prompts': favorite_prompts
+    })
