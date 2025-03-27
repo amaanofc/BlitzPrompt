@@ -44,6 +44,20 @@
         background-color: #3d3d3d;
         color: #ff4444;
       }
+      /* Style for logout button in dropdown */
+      .dropdown-item[type="submit"] {
+        background: none;
+        border: none;
+        color: #ffffff;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+      }
+      .dropdown-item[type="submit"]:hover {
+        background-color: #3d3d3d;
+        color: #ff4444;
+      }
       .card {
         background-color: #2d2d2d;
         border: 1px solid #3d3d3d;
@@ -151,12 +165,14 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
+            {% if user.is_authenticated %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'interface' %}">Interface</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'prompt_library' %}">Library</a>
             </li>
+            {% endif %}
           </ul>
           <ul class="navbar-nav">
             {% if user.is_authenticated %}
@@ -172,18 +188,17 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <a class="dropdown-item" href="{% url 'profile' %}"
-                    >Profile</a
-                  >
+                  <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
                 </li>
                 <li>
-                  <a class="dropdown-item" href="{% url 'favorites' %}"
-                    >Favorites</a
-                  >
+                  <a class="dropdown-item" href="{% url 'favorites' %}">Favorites</a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
-                  <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+                  <form method="post" action="{% url 'logout' %}" class="d-inline w-100">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item">Logout</button>
+                  </form>
                 </li>
               </ul>
             </li>

@@ -9,6 +9,7 @@ import json
 import requests
 from django.conf import settings
 from django.db import transaction
+import time
 
 def home(request):
     # Get trending prompts (top 6 by votes)
@@ -318,56 +319,71 @@ def favorites(request):
 def create_prompt(request):
     if request.method == 'POST':
         try:
+            # Get form data
             title = request.POST.get('title')
-            description = request.POST.get('description')
             content = request.POST.get('content')
-            category_ids = request.POST.getlist('categories')
+            description = request.POST.get('description')
+            categories = request.POST.getlist('categories')
+            is_priming = request.POST.get('is_priming') == 'on'
+            priming_order = int(request.POST.get('priming_order', 0))
             
-            # Use atomic transaction to prevent duplicates
-            with transaction.atomic():
-                # Check if a similar prompt already exists for this user
-                existing_prompt = Prompt.objects.filter(
-                    title=title,
-                    author=request.user,
-                    content=content
-                ).first()
-                
-                if existing_prompt:
-                    return JsonResponse({
-                        'success': True,
-                        'prompt_id': existing_prompt.id,
-                        'message': 'Prompt already exists'
-                    })
-    
-                # Create the prompt
-                prompt = Prompt.objects.create(
-                    title=title,
-                    description=description,
-                    content=content,
-                    author=request.user
-                )
-    
-                # Add selected categories
-                for category_id in category_ids:
-                    try:
-                        category = Category.objects.get(id=category_id)
-                        prompt.categories.add(category)
-                    except Category.DoesNotExist:
-                        pass
-                
-                # Automatically add to user's favorites
-                request.user.favorites.add(prompt)
-    
-            return JsonResponse({
-                'success': True,
-                'prompt_id': prompt.id
-            })
+            # Validate required fields
+            if not title or not content:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Title and content are required'
+                }, status=400)
+            
+            # Try to create the prompt with retries
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    with transaction.atomic():
+                        # Create the prompt
+                        prompt = Prompt.objects.create(
+                            title=title,
+                            content=content,
+                            description=description,
+                            author=request.user,
+                            is_priming=is_priming,
+                            priming_order=priming_order
+                        )
+                        
+                        # Add categories if any
+                        if categories:
+                            prompt.categories.set(categories)
+                        
+                        # If it's a priming prompt, add to favorites automatically
+                        if is_priming:
+                            request.user.favorites.add(prompt)
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'prompt_id': prompt.id,
+                            'message': 'Prompt created successfully'
+                        })
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count == max_retries:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'Error creating prompt after {max_retries} attempts: {str(e)}'
+                        }, status=500)
+                    # Wait a bit before retrying
+                    time.sleep(0.5)
+            
         except Exception as e:
             return JsonResponse({
                 'success': False,
-                'error': str(e)
-            })
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+                'error': f'Error creating prompt: {str(e)}'
+            }, status=500)
+    
+    # For GET requests, return the form
+    categories = Category.objects.all()
+    return render(request, 'core/create_prompt.html', {
+        'categories': categories
+    })
 
 @login_required
 def get_prompt_info(request, prompt_id):
