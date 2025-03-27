@@ -369,3 +369,26 @@ def delete_prompt(request, prompt_id):
         return JsonResponse({'success': True, 'message': f'Prompt "{prompt_title}" has been deleted'})
     except Prompt.DoesNotExist:
         return JsonResponse({'error': 'Prompt not found'}, status=404)
+
+@login_required
+def delete_comment(request, comment_id):
+    try:
+        comment = Comment.objects.get(id=comment_id)
+        
+        # Only allow the comment author to delete it
+        if comment.author != request.user:
+            return JsonResponse({'error': 'You can only delete your own comments'}, status=403)
+        
+        # Get the prompt to update comment count
+        prompt = comment.prompt
+        
+        # Delete the comment
+        comment.delete()
+        
+        # Update comment count on the prompt
+        prompt.total_comments -= 1
+        prompt.save()
+        
+        return JsonResponse({'success': True})
+    except Comment.DoesNotExist:
+        return JsonResponse({'error': 'Comment not found'}, status=404)
