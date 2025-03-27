@@ -1,0 +1,211 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
+from .models import Prompt, Category, Vote, Comment
+import json
+import requests
+from django.conf import settings
+
+def home(request):
+    return render(request, 'core/home.html')
+
+def signup(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'core/signup.html', {'form': form})
+
+@login_required
+def prompt_library(request):
+    category = request.GET.get('category')
+    search = request.GET.get('search')
+    sort = request.GET.get('sort', '-total_votes')  # Default sort by votes
+
+    prompts = Prompt.objects.filter(published=True)
+    
+    if category:
+        prompts = prompts.filter(categories__name=category)
+    if search:
+        prompts = prompts.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(content__icontains=search)
+        )
+    
+    prompts = prompts.order_by(sort)
+    paginator = Paginator(prompts, 12)  # 12 prompts per page
+    page = request.GET.get('page')
+    prompts = paginator.get_page(page)
+
+    categories = Category.objects.all()
+    return render(request, 'core/library.html', {
+        'prompts': prompts,
+        'categories': categories,
+        'selected_category': category,
+        'search_query': search
+    })
+
+@login_required
+def prompt_detail(request, prompt_id):
+    prompt = get_object_or_404(Prompt, id=prompt_id, published=True)
+    comments = prompt.comments.filter(parent=None).order_by('-created_at')
+    return render(request, 'core/prompt_detail.html', {
+        'prompt': prompt,
+        'comments': comments
+    })
+
+@login_required
+def gpt_interface(request):
+    if request.user.is_authenticated:
+        favorites = request.user.favorites.all()
+        favorited_ids = [p.id for p in favorites]
+    else:
+        favorites = []
+        favorited_ids = []
+    
+    if request.method == 'POST':
+        try:
+            prompt_id = request.POST.get('prompt_id')
+            user_query = request.POST.get('query')
+            
+            selected_prompt = Prompt.objects.get(id=prompt_id)
+            
+            # DeepSeek API integration
+            headers = {
+                'Authorization': f'Bearer {settings.DEEPSEEK_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                'prompt': selected_prompt.content + "\n\nUser Query: " + user_query,
+                'max_tokens': 1000,
+                'temperature': 0.7
+            }
+            
+            response = requests.post(
+                'https://api.deepseek.com/v1/chat/completions',
+                headers=headers,
+                json=data
+            )
+            
+            if response.status_code == 200:
+                ai_response = response.json()['choices'][0]['message']['content']
+            else:
+                ai_response = "Error: Unable to get response from DeepSeek"
+
+            selected_prompt.usage_count += 1
+            selected_prompt.save()
+            
+            return render(request, 'core/interface.html', {
+                'response': ai_response,
+                'favorites': favorites,
+                'selected_prompt': selected_prompt,
+                'favorited_ids': favorited_ids
+            })
+        except Exception as e:
+            return render(request, 'core/interface.html', {
+                'error': str(e),
+                'favorites': favorites,
+                'favorited_ids': favorited_ids
+            })
+    
+    return render(request, 'core/interface.html', {
+        'favorites': favorites,
+        'favorited_ids': favorited_ids
+    })
+
+@login_required
+def toggle_favorite(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        if prompt in request.user.favorites.all():
+            request.user.favorites.remove(prompt)
+            is_favorited = False
+        else:
+            request.user.favorites.add(prompt)
+            is_favorited = True
+        return JsonResponse({'is_favorited': is_favorited})
+    except Prompt.DoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
+
+@login_required
+def publish_prompt(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        prompt.published = True
+        prompt.save()
+        return JsonResponse({'published': True})
+    except Prompt.DoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
+
+@login_required
+def vote_prompt(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        value = int(request.POST.get('value', 0))
+        
+        if value not in [-1, 0, 1]:
+            return JsonResponse({'error': 'Invalid vote value'}, status=400)
+            
+        vote, created = Vote.objects.get_or_create(
+            user=request.user,
+            prompt=prompt,
+            defaults={'value': value}
+        )
+        
+        if not created:
+            if value == 0:
+                vote.delete()
+            else:
+                vote.value = value
+                vote.save()
+                
+        prompt.update_vote_count()
+        return JsonResponse({
+            'total_votes': prompt.total_votes,
+            'user_vote': value
+        })
+    except Prompt.DoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
+
+@login_required
+def add_comment(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        content = request.POST.get('content')
+        parent_id = request.POST.get('parent_id')
+        
+        if not content:
+            return JsonResponse({'error': 'Comment content is required'}, status=400)
+            
+        parent = None
+        if parent_id:
+            parent = Comment.objects.get(id=parent_id)
+            
+        comment = Comment.objects.create(
+            prompt=prompt,
+            author=request.user,
+            content=content,
+            parent=parent
+        )
+        
+        prompt.total_comments += 1
+        prompt.save()
+        
+        return JsonResponse({
+            'id': comment.id,
+            'content': comment.content,
+            'author': comment.author.username,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Prompt.DoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
+    except Comment.DoesNotExist:
+        return JsonResponse({'error': 'Parent comment not found'}, status=404)

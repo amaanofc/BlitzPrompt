@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Favorite Prompts</h5>
+                    <div class="list-group">
+                        {% for prompt in favorites %}
+                        <a href="#" class="list-group-item list-group-item-action {% if selected_prompt.id == prompt.id %}active{% endif %}" 
+                           onclick="setPrompt('{{ prompt.id }}', '{{ prompt.title }}', '{{ prompt.content|escapejs }}')">
+                            {{ prompt.title }}
+                        </a>
+                        {% empty %}
+                        <p class="text-muted">No favorites yet!</p>
+                        {% endfor %}
+                    </div>
+                    <a href="{% url 'prompt_library' %}" class="btn btn-primary mt-3 w-100">
+                        Browse Prompt Library
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Prompt Selection -->
+                    <div class="mb-4">
+                        <label for="prompt-select" class="form-label">Select a Prompt</label>
+                        <select class="form-select" id="prompt-select" onchange="handlePromptSelect(this.value)">
+                            <option value="">Choose a prompt...</option>
+                            {% for prompt in favorites %}
+                            <option value="{{ prompt.id }}" {% if selected_prompt.id == prompt.id %}selected{% endif %}>
+                                {{ prompt.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Selected Prompt Display -->
+                    <div id="selected-prompt" class="mb-4" style="display: none;">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title" id="prompt-title"></h5>
+                                <p class="card-text" id="prompt-content"></p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-warning" onclick="toggleFavorite('{{ selected_prompt.id|default:0 }}')" id="favoriteBtn">
+                                        {% if selected_prompt.id in favorited_ids %}★ Unfavorite{% else %}☆ Favorite{% endif %}
+                                    </button>
+                                    <button class="btn btn-sm btn-info" onclick="publishPrompt('{{ selected_prompt.id|default:0 }}')">
+                                        Publish to Library
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Query Input -->
+                    <form method="post" id="query-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="prompt_id" id="prompt_id">
+                        <div class="mb-3">
+                            <label for="query" class="form-label">Your Query</label>
+                            <textarea name="query" id="query" class="form-control" rows="4" placeholder="Type your query here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                            Ask DeepSeek
+                        </button>
+                    </form>
+
+                    <!-- Response Area -->
+                    {% if response %}
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">DeepSeek Response</h5>
+                            <div class="response-content">{{ response|linebreaks }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if error %}
+                    <div class="alert alert-danger mt-4">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const promptSelect = document.getElementById('prompt-select');
+    const selectedPrompt = document.getElementById('selected-prompt');
+    const promptTitle = document.getElementById('prompt-title');
+    const promptContent = document.getElementById('prompt-content');
+    const promptId = document.getElementById('prompt_id');
+    const queryInput = document.getElementById('query');
+    const submitBtn = document.getElementById('submit-btn');
+    const queryForm = document.getElementById('query-form');
+
+    // Initialize with default prompt if set
+    if (window.appConfig.defaultPromptId !== "0") {
+        handlePromptSelect(window.appConfig.defaultPromptId);
+    }
+
+    // Handle prompt selection
+    window.handlePromptSelect = function(promptId) {
+        if (!promptId) {
+            selectedPrompt.style.display = 'none';
+            submitBtn.disabled = true;
+            return;
+        }
+
+        // Find the prompt in favorites
+        const prompt = Array.from(document.querySelectorAll('.list-group-item')).find(
+            item => item.getAttribute('onclick').includes(promptId)
+        );
+
+        if (prompt) {
+            const title = prompt.textContent.trim();
+            const content = prompt.getAttribute('onclick').match(/'([^']+)'/g)[2].slice(1, -1);
+            
+            promptTitle.textContent = title;
+            promptContent.textContent = content;
+            promptId.value = promptId;
+            selectedPrompt.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+    };
+
+    // Set prompt from favorites list
+    window.setPrompt = function(id, title, content) {
+        promptSelect.value = id;
+        promptTitle.textContent = title;
+        promptContent.textContent = content;
+        promptId.value = id;
+        selectedPrompt.style.display = 'block';
+        submitBtn.disabled = false;
+    };
+
+    // Toggle favorite
+    window.toggleFavorite = async function(promptId) {
+        if (!window.appConfig.isAuthenticated) {
+            window.location.href = '/login/';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/toggle-favorite/${promptId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                const favoriteBtn = document.getElementById('favoriteBtn');
+                if (data.is_favorited) {
+                    favoriteBtn.innerHTML = '★ Unfavorite';
+                } else {
+                    favoriteBtn.innerHTML = '☆ Favorite';
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
+    };
+
+    // Publish prompt
+    window.publishPrompt = async function(promptId) {
+        if (!window.appConfig.isAuthenticated) {
+            window.location.href = '/login/';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/publish-prompt/${promptId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                alert('Prompt published successfully!');
+            }
+        } catch (error) {
+            console.error('Error publishing prompt:', error);
+        }
+    };
+
+    // Handle form submission
+    queryForm.addEventListener('submit', function(e) {
+        if (!promptId.value) {
+            e.preventDefault();
+            alert('Please select a prompt first');
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

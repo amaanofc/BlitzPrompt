@@ -1,0 +1,7 @@
+.prompt-card {
+    transition: transform 0.2s;
+}
+
+.prompt-card:hover {
+    transform: translateY(-5px);
+}

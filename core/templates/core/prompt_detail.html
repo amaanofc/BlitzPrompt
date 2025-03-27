@@ -1,0 +1,342 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<div class="container mt-4">
+  <!-- Prompt Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <h1 class="card-title">{{ prompt.title }}</h1>
+        <div class="btn-group">
+          <button
+            class="btn btn-sm btn-outline-primary vote-btn"
+            data-prompt-id="{{ prompt.id }}"
+            data-value="1"
+          >
+            <i class="fas fa-arrow-up"></i>
+          </button>
+          <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
+          <button
+            class="btn btn-sm btn-outline-danger vote-btn"
+            data-prompt-id="{{ prompt.id }}"
+            data-value="-1"
+          >
+            <i class="fas fa-arrow-down"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-2 mb-3">
+        {% for category in prompt.categories.all %}
+        <span class="badge bg-secondary me-1">{{ category.name }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="card bg-light mb-3">
+        <div class="card-body">
+          <h5 class="card-subtitle mb-2 text-muted">Prompt</h5>
+          <p class="card-text">{{ prompt.content }}</p>
+        </div>
+      </div>
+
+      <div class="card bg-light mb-3">
+        <div class="card-body">
+          <h5 class="card-subtitle mb-2 text-muted">Description</h5>
+          <p class="card-text">{{ prompt.description }}</p>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+          Posted by {{ prompt.author.username }} on {{ prompt.created_at|date:"F
+          j, Y" }}
+        </small>
+        <div>
+          <button
+            class="btn btn-sm btn-outline-warning favorite-btn"
+            data-prompt-id="{{ prompt.id }}"
+          >
+            {% if prompt in user.favorites.all %}
+            <i class="fas fa-star"></i> Unfavorite {% else %}
+            <i class="far fa-star"></i> Favorite {% endif %}
+          </button>
+          <a
+            href="{% url 'interface' %}?prompt_id={{ prompt.id }}"
+            class="btn btn-sm btn-primary"
+          >
+            Use This Prompt
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments Section -->
+  <div class="card">
+    <div class="card-body">
+      <h3 class="card-title">Comments</h3>
+
+      <!-- Comment Form -->
+      <form id="comment-form" class="mb-4">
+        {% csrf_token %}
+        <div class="mb-3">
+          <textarea
+            class="form-control"
+            id="comment-content"
+            rows="3"
+            placeholder="Write a comment..."
+          ></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Comment</button>
+      </form>
+
+      <!-- Comments List -->
+      <div id="comments-list">
+        {% for comment in comments %}
+        <div class="card mb-3 comment-card" data-comment-id="{{ comment.id }}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <h6 class="card-subtitle mb-2 text-muted">
+                {{ comment.author.username }}
+              </h6>
+              <small class="text-muted"
+                >{{ comment.created_at|date:"F j, Y, g:i a" }}</small
+              >
+            </div>
+            <p class="card-text">{{ comment.content }}</p>
+
+            <!-- Reply Button -->
+            <button
+              class="btn btn-sm btn-link reply-btn"
+              data-comment-id="{{ comment.id }}"
+            >
+              Reply
+            </button>
+
+            <!-- Replies -->
+            <div class="replies ms-4">
+              {% for reply in comment.replies.all %}
+              <div
+                class="card mt-2 reply-card"
+                data-comment-id="{{ reply.id }}"
+              >
+                <div class="card-body">
+                  <div class="d-flex justify-content-between">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                      {{ reply.author.username }}
+                    </h6>
+                    <small class="text-muted"
+                      >{{ reply.created_at|date:"F j, Y, g:i a" }}</small
+                    >
+                  </div>
+                  <p class="card-text">{{ reply.content }}</p>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No comments yet. Be the first to comment!</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Voting functionality
+    const voteButtons = document.querySelectorAll(".vote-btn");
+    voteButtons.forEach((button) => {
+      button.addEventListener("click", async function () {
+        const promptId = this.dataset.promptId;
+        const value = parseInt(this.dataset.value);
+        const voteCount = this.parentElement.querySelector(".vote-count");
+
+        try {
+          const response = await fetch(`/vote-prompt/${promptId}/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+            body: JSON.stringify({ value: value }),
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+            voteCount.textContent = data.total_votes;
+
+            voteButtons.forEach((btn) => {
+              if (btn.dataset.promptId === promptId) {
+                if (parseInt(btn.dataset.value) === data.user_vote) {
+                  btn.classList.add("active");
+                } else {
+                  btn.classList.remove("active");
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error("Error voting:", error);
+        }
+      });
+    });
+
+    // Favorite functionality
+    const favoriteBtn = document.querySelector(".favorite-btn");
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener("click", async function () {
+        const promptId = this.dataset.promptId;
+
+        try {
+          const response = await fetch(`/toggle-favorite/${promptId}/`, {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+            const icon = this.querySelector("i");
+            if (data.is_favorited) {
+              icon.classList.remove("far");
+              icon.classList.add("fas");
+              this.innerHTML = '<i class="fas fa-star"></i> Unfavorite';
+            } else {
+              icon.classList.remove("fas");
+              icon.classList.add("far");
+              this.innerHTML = '<i class="far fa-star"></i> Favorite';
+            }
+          }
+        } catch (error) {
+          console.error("Error toggling favorite:", error);
+        }
+      });
+    }
+
+    // Comment functionality
+    const commentForm = document.getElementById("comment-form");
+    const commentsList = document.getElementById("comments-list");
+
+    commentForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const content = document.getElementById("comment-content").value;
+
+      if (!content.trim()) return;
+
+      try {
+        const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+          },
+          body: JSON.stringify({ content: content }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          const commentHtml = `
+                    <div class="card mb-3 comment-card" data-comment-id="${data.id}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="card-subtitle mb-2 text-muted">${data.author}</h6>
+                                <small class="text-muted">${data.created_at}</small>
+                            </div>
+                            <p class="card-text">${data.content}</p>
+                            <button class="btn btn-sm btn-link reply-btn" data-comment-id="${data.id}">
+                                Reply
+                            </button>
+                            <div class="replies ms-4"></div>
+                        </div>
+                    </div>
+                `;
+
+          commentsList.insertAdjacentHTML("afterbegin", commentHtml);
+          document.getElementById("comment-content").value = "";
+        }
+      } catch (error) {
+        console.error("Error posting comment:", error);
+      }
+    });
+
+    // Reply functionality
+    document.addEventListener("click", async function (e) {
+      if (e.target.classList.contains("reply-btn")) {
+        const commentId = e.target.dataset.commentId;
+        const repliesDiv = e.target.nextElementSibling;
+
+        if (!repliesDiv.querySelector(".reply-form")) {
+          const replyForm = document.createElement("form");
+          replyForm.className = "reply-form mt-2";
+          replyForm.innerHTML = `
+                    <div class="mb-2">
+                        <textarea class="form-control" rows="2" placeholder="Write a reply..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                    <button type="button" class="btn btn-sm btn-secondary cancel-reply">Cancel</button>
+                `;
+
+          repliesDiv.appendChild(replyForm);
+
+          replyForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const content = this.querySelector("textarea").value;
+
+            if (!content.trim()) return;
+
+            try {
+              const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": document.querySelector(
+                    "[name=csrfmiddlewaretoken]"
+                  ).value,
+                },
+                body: JSON.stringify({
+                  content: content,
+                  parent_id: commentId,
+                }),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+                const replyHtml = `
+                                <div class="card mt-2 reply-card" data-comment-id="${data.id}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="card-subtitle mb-2 text-muted">${data.author}</h6>
+                                            <small class="text-muted">${data.created_at}</small>
+                                        </div>
+                                        <p class="card-text">${data.content}</p>
+                                    </div>
+                                </div>
+                            `;
+
+                repliesDiv.insertAdjacentHTML("beforeend", replyHtml);
+                this.remove();
+              }
+            } catch (error) {
+              console.error("Error posting reply:", error);
+            }
+          });
+
+          replyForm
+            .querySelector(".cancel-reply")
+            .addEventListener("click", function () {
+              replyForm.remove();
+            });
+        }
+      }
+    });
+  });
+</script>
+{% endblock %} {% endblock %}
