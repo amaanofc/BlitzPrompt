@@ -25,6 +25,8 @@ class Prompt(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     total_votes = models.IntegerField(default=0)
     total_comments = models.IntegerField(default=0)
+    is_priming = models.BooleanField(default=False, help_text="If True, this prompt will be used as a priming prompt before the user's query")
+    priming_order = models.IntegerField(default=0, help_text="Order in which priming prompts should be applied (lower numbers first)")
 
     def __str__(self):
         return self.title
@@ -32,6 +34,10 @@ class Prompt(models.Model):
     def update_vote_count(self):
         self.total_votes = self.votes.aggregate(models.Sum('value'))['value__sum'] or 0
         self.save()
+
+    def get_formatted_prompt(self):
+        """Returns the formatted prompt with any necessary formatting"""
+        return self.content
 
 class Vote(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

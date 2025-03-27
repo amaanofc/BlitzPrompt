@@ -103,6 +103,28 @@ def gpt_interface(request):
             
             selected_prompt = Prompt.objects.get(id=prompt_id)
             
+            # Get all priming prompts for the user, ordered by priming_order
+            priming_prompts = Prompt.objects.filter(
+                is_priming=True,
+                published=True
+            ).order_by('priming_order')
+            
+            # Construct the full prompt with priming prompts
+            full_prompt = []
+            
+            # Add priming prompts first
+            for priming_prompt in priming_prompts:
+                full_prompt.append(priming_prompt.get_formatted_prompt())
+            
+            # Add the selected prompt
+            full_prompt.append(selected_prompt.get_formatted_prompt())
+            
+            # Add the user's query
+            full_prompt.append(f"\nUser Query: {user_query}")
+            
+            # Join all parts with double newlines
+            final_prompt = "\n\n".join(full_prompt)
+            
             # DeepSeek API integration
             headers = {
                 'Authorization': f'Bearer {settings.DEEPSEEK_API_KEY}',
@@ -110,9 +132,22 @@ def gpt_interface(request):
             }
             
             data = {
-                'prompt': selected_prompt.content + "\n\nUser Query: " + user_query,
+                'model': 'deepseek-chat',  # Required model parameter
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': 'You are a helpful AI assistant that provides clear and concise responses.'
+                    },
+                    {
+                        'role': 'user',
+                        'content': final_prompt
+                    }
+                ],
                 'max_tokens': 1000,
-                'temperature': 0.7
+                'temperature': 0.7,
+                'top_p': 0.9,
+                'frequency_penalty': 0.5,
+                'presence_penalty': 0.5
             }
             
             response = requests.post(
@@ -124,7 +159,9 @@ def gpt_interface(request):
             if response.status_code == 200:
                 ai_response = response.json()['choices'][0]['message']['content']
             else:
-                ai_response = "Error: Unable to get response from DeepSeek"
+                ai_response = f"Error: Unable to get response from DeepSeek (Status: {response.status_code})"
+                if response.text:
+                    ai_response += f"\nDetails: {response.text}"
 
             selected_prompt.usage_count += 1
             selected_prompt.save()
@@ -134,7 +171,8 @@ def gpt_interface(request):
                 'favorites': favorites,
                 'selected_prompt': selected_prompt,
                 'favorited_ids': favorited_ids,
-                'categories': categories
+                'categories': categories,
+                'user_query': user_query
             })
         except Exception as e:
             return render(request, 'core/interface.html', {
