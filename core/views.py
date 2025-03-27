@@ -66,17 +66,23 @@ def prompt_detail(request, prompt_id):
     
     # Get user's current vote if any
     user_vote = 0
+    is_favorited = False
+    
     if request.user.is_authenticated:
         try:
             vote = Vote.objects.get(user=request.user, prompt=prompt)
             user_vote = vote.value
         except Vote.DoesNotExist:
             pass
+        
+        # Check if this prompt is in user's favorites
+        is_favorited = request.user.favorites.filter(id=prompt_id).exists()
     
     return render(request, 'core/prompt_detail.html', {
         'prompt': prompt,
         'comments': comments,
-        'user_vote': user_vote
+        'user_vote': user_vote,
+        'is_favorited': is_favorited
     })
 
 @login_required
@@ -204,29 +210,48 @@ def gpt_interface(request):
 
 @login_required
 def toggle_favorite(request, prompt_id):
+    """Toggle a prompt as favorite/unfavorite for the current user"""
     try:
+        # Get the prompt
         prompt = Prompt.objects.get(id=prompt_id)
+        
+        # Track the previous state for logging
+        was_favorited = request.user.favorites.filter(id=prompt_id).exists()
         
         # Use a transaction to prevent race conditions
         with transaction.atomic():
             # Check if the prompt is already in favorites
-            is_favorited = request.user.favorites.filter(id=prompt_id).exists()
-            
-            if is_favorited:
+            if was_favorited:
                 # Remove from favorites
                 request.user.favorites.remove(prompt)
                 is_favorited = False
             else:
-                # Add to favorites, but avoid using add() which can create duplicates
-                if not request.user.favorites.filter(id=prompt_id).exists():
-                    request.user.favorites.add(prompt)
+                # Add to favorites
+                request.user.favorites.add(prompt)
                 is_favorited = True
-            
-        return JsonResponse({'is_favorited': is_favorited})
+        
+        print(f"DEBUG: Toggle favorite for prompt {prompt_id} - Before: {was_favorited}, After: {is_favorited}")
+        
+        return JsonResponse({
+            'success': True,
+            'is_favorited': is_favorited,
+            'prompt_id': prompt_id,
+            'prompt_title': prompt.title
+        })
     except Prompt.DoesNotExist:
-        return JsonResponse({'error': 'Prompt not found'}, status=404)
+        return JsonResponse({
+            'success': False,
+            'error': 'Prompt not found',
+            'is_favorited': False
+        }, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+            'is_favorited': None
+        }, status=500)
 
 @login_required
 def publish_prompt(request, prompt_id):

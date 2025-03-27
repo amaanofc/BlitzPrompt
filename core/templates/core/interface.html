@@ -553,9 +553,21 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
         
         if (data.success) {
             const isExisting = data.message && data.message.includes('already exists');
-            const alertMessage = isExisting ? 'This prompt already exists and has been added to your favorites.' : 'Prompt created successfully!';
             
-            alert(alertMessage);
+            // Show a simple toast/notification instead of an alert
+            const statusText = document.createElement('div');
+            statusText.className = 'alert alert-success mt-3 status-message';
+            statusText.innerHTML = isExisting 
+                ? '<i class="fas fa-info-circle me-2"></i>This prompt already exists and has been added to your favorites.'
+                : '<i class="fas fa-check-circle me-2"></i>Prompt created successfully!';
+            
+            const formContainer = this.closest('.create-prompt-section');
+            formContainer.appendChild(statusText);
+            
+            // Remove the message after 5 seconds
+            setTimeout(() => {
+                statusText.remove();
+            }, 5000);
             
             // Add the prompt to favorites list and dropdown if not already there
             const title = formData.get('title');
@@ -602,7 +614,18 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
             // Switch to chat tab and select the prompt
             document.getElementById('chat-tab').click();
         } else {
-            alert('Error creating prompt: ' + data.error);
+            // Show error as a notification
+            const errorText = document.createElement('div');
+            errorText.className = 'alert alert-danger mt-3 status-message';
+            errorText.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${data.error || 'Error creating prompt'}`;
+            
+            const formContainer = this.closest('.create-prompt-section');
+            formContainer.appendChild(errorText);
+            
+            // Remove the message after 5 seconds
+            setTimeout(() => {
+                errorText.remove();
+            }, 5000);
         }
     })
     .catch(error => {
@@ -611,7 +634,19 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
         submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Prompt';
         
         console.error('Error creating prompt:', error);
-        alert('An error occurred while creating the prompt.');
+        
+        // Show error as a notification
+        const errorText = document.createElement('div');
+        errorText.className = 'alert alert-danger mt-3 status-message';
+        errorText.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>An error occurred while creating the prompt.';
+        
+        const formContainer = this.closest('.create-prompt-section');
+        formContainer.appendChild(errorText);
+        
+        // Remove the message after 5 seconds
+        setTimeout(() => {
+            errorText.remove();
+        }, 5000);
     });
 });
 </script>

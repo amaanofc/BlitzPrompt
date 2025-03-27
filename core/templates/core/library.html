@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error voting:', error);
                 
-                // Reset button state to correct icon
+                // Reset button state to correct icon without showing error alert
                 if (value === 1) {
                     this.innerHTML = '<i class="fas fa-arrow-up"></i>';
                 } else {
@@ -170,11 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 this.disabled = false;
                 
-                // Check if user is not logged in
+                // Only redirect on 403 (authentication error)
                 if (error.message.includes('403')) {
                     window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
-                } else {
-                    alert('Error voting. Please try again.');
                 }
             });
         });

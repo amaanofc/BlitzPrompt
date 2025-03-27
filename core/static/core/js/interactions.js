@@ -19,7 +19,7 @@ function setPrompt(promptId) {
 
 function toggleFavorite(promptId) {
     if (!window.appConfig || !window.appConfig.isAuthenticated) {
-        alert('Please login to favorite prompts!');
+        showNotification('Please login to favorite prompts.', 'warning');
         window.location.href = '/login/';
         return;
     }
@@ -50,10 +50,16 @@ function toggleFavorite(promptId) {
 
         // Update favorites list in the sidebar
         updateFavoritesList(promptId, data.is_favorited);
+        
+        // Show a subtle notification
+        const message = data.is_favorited ? 
+            'Added to favorites' : 
+            'Removed from favorites';
+        showNotification(message, 'success');
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error toggling favorite status. Please try again.');
+        showNotification('Error toggling favorite status.', 'danger');
         btn.textContent = originalContent;
         btn.disabled = false;
     });
@@ -91,7 +97,7 @@ function updateFavoritesList(promptId, isFavorited) {
 
 function publishPrompt(promptId) {
     if (!window.appConfig || !window.appConfig.isAuthenticated) {
-        alert('Please login to publish prompts!');
+        showNotification('Please login to publish prompts.', 'warning');
         window.location.href = '/login/';
         return;
     }
@@ -121,13 +127,71 @@ function publishPrompt(promptId) {
             btn.classList.remove('btn-info');
             btn.classList.add('btn-success');
             btn.disabled = true;
-            alert('Your prompt has been published to the library successfully!');
+            showNotification('Your prompt has been published to the library successfully!', 'success');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error publishing prompt. Please try again.');
+        showNotification('Error publishing prompt.', 'danger');
         btn.innerHTML = originalContent;
         btn.disabled = false;
     });
+}
+
+// Helper function to show non-blocking notifications
+function showNotification(message, type) {
+    // Create notification container if it doesn't exist
+    let notificationContainer = document.getElementById('notification-container');
+    
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        notificationContainer.style.position = 'fixed';
+        notificationContainer.style.top = '10px';
+        notificationContainer.style.right = '10px';
+        notificationContainer.style.zIndex = '9999';
+        notificationContainer.style.maxWidth = '300px';
+        document.body.appendChild(notificationContainer);
+    }
+    
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} notification`;
+    notification.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            ${message}
+            <button type="button" class="btn-close btn-sm" aria-label="Close"></button>
+        </div>
+    `;
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateY(-20px)';
+    notification.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    // Add close button functionality
+    const closeBtn = notification.querySelector('.btn-close');
+    closeBtn.addEventListener('click', () => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    });
+    
+    // Add to container
+    notificationContainer.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 4000);
 }

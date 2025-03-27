@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: blitzprompt
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn BlitzPrompt.wsgi:application"
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: "blitzprompt.onrender.com"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEEPSEEK_API_KEY
+        sync: false
+    plan: free

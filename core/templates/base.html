@@ -255,6 +255,36 @@
         background-color: var(--primary-color);
         border-color: var(--primary-color);
       }
+
+      .notification {
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        min-width: 250px;
+      }
+
+      .status-message {
+        animation: fadeInOut 5s forwards;
+      }
+
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        10% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        90% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+      }
     </style>
   </head>
 
