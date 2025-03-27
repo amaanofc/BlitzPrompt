@@ -187,7 +187,7 @@
 
         // Visual feedback - show loading state
         this.disabled = true;
-        const originalContent = this.innerHTML;
+        const originalHTML = this.innerHTML;
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         // Check if the button is already active (user already voted this way)
@@ -199,6 +199,8 @@
         const formData = new FormData();
         formData.append("value", voteValue);
 
+        // Important: Do NOT set Content-Type header when using FormData
+        // Let the browser set it automatically with proper boundary
         fetch(`/vote-prompt/${promptId}/`, {
           method: "POST",
           headers: {
@@ -213,6 +215,8 @@
             return response.json();
           })
           .then((data) => {
+            console.log("Vote response:", data); // Debug output
+
             // Update the vote count
             voteCount.textContent = data.total_votes;
 
@@ -227,17 +231,26 @@
               downButton.classList.add("active");
             }
 
-            // Reset button state
-            this.innerHTML = originalContent;
+            // Reset button state to correct icon
+            if (value === 1) {
+              this.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            } else {
+              this.innerHTML = '<i class="fas fa-arrow-down"></i>';
+            }
             this.disabled = false;
           })
           .catch((error) => {
             console.error("Error voting:", error);
-            alert("Error voting. Please try again.");
 
-            // Reset button state
-            this.innerHTML = originalContent;
+            // Reset button state to correct icon
+            if (value === 1) {
+              this.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            } else {
+              this.innerHTML = '<i class="fas fa-arrow-down"></i>';
+            }
             this.disabled = false;
+
+            alert("Error voting. Please try again.");
           });
       });
     });

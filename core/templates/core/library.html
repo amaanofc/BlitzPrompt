@@ -3,6 +3,9 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Add a hidden form field with CSRF token -->
+    {% csrf_token %}
+    
     <!-- Search and Filter Section -->
     <div class="row mb-4">
         <div class="col-md-8">
@@ -93,41 +96,87 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const voteButtons = document.querySelectorAll('.vote-btn');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                      '{{ csrf_token }}'; // Fallback to Django template variable
     
     voteButtons.forEach(button => {
-        button.addEventListener('click', async function() {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
             const promptId = this.dataset.promptId;
             const value = parseInt(this.dataset.value);
             const voteCount = this.parentElement.querySelector('.vote-count');
+            const upButton = this.parentElement.querySelector('[data-value="1"]');
+            const downButton = this.parentElement.querySelector('[data-value="-1"]');
             
-            try {
-                const response = await fetch(`/vote-prompt/${promptId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ value: value })
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    voteCount.textContent = data.total_votes;
-                    
-                    // Update button styles
-                    voteButtons.forEach(btn => {
-                        if (btn.dataset.promptId === promptId) {
-                            if (parseInt(btn.dataset.value) === data.user_vote) {
-                                btn.classList.add('active');
-                            } else {
-                                btn.classList.remove('active');
-                            }
-                        }
-                    });
+            // Visual feedback - show loading state
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            // Check if the button is already active (user already voted this way)
+            const isActive = this.classList.contains('active');
+            // If clicking an active button, send 0 (remove vote), otherwise send the button's value
+            const voteValue = isActive ? 0 : value;
+            
+            // Create FormData for the request
+            const formData = new FormData();
+            formData.append('value', voteValue);
+            
+            fetch(`/vote-prompt/${promptId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-            } catch (error) {
+                return response.json();
+            })
+            .then(data => {
+                console.log("Vote response:", data);
+                
+                // Update the vote count
+                voteCount.textContent = data.total_votes;
+                
+                // Reset active states on both buttons
+                upButton.classList.remove('active');
+                downButton.classList.remove('active');
+                
+                // Set active state based on server response
+                if (data.user_vote === 1) {
+                    upButton.classList.add('active');
+                } else if (data.user_vote === -1) {
+                    downButton.classList.add('active');
+                }
+                
+                // Reset button state to correct icon
+                if (value === 1) {
+                    this.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                } else {
+                    this.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                }
+                this.disabled = false;
+            })
+            .catch(error => {
                 console.error('Error voting:', error);
-            }
+                
+                // Reset button state to correct icon
+                if (value === 1) {
+                    this.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                } else {
+                    this.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                }
+                this.disabled = false;
+                
+                // Check if user is not logged in
+                if (error.message.includes('403')) {
+                    window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+                } else {
+                    alert('Error voting. Please try again.');
+                }
+            });
         });
     });
 });

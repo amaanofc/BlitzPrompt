@@ -248,26 +248,27 @@ def vote_prompt(request, prompt_id):
         # Ensure we have a valid prompt
         prompt = Prompt.objects.get(id=prompt_id)
         
-        # Get vote value from different request types
-        value = None
-        if request.content_type and 'application/json' in request.content_type:
+        # Get vote value from POST data, debug request content type
+        print(f"Content-Type: {request.content_type}")
+        print(f"POST data: {request.POST}")
+        
+        try:
+            # Try to get the value from POST data first (most common case)
+            value = int(request.POST.get('value', 0))
+        except (ValueError, TypeError):
+            # Fall back to JSON if POST doesn't work
             try:
-                data = json.loads(request.body)
-                value = int(data.get('value', 0))
-            except json.JSONDecodeError:
-                pass
-        elif request.content_type and 'multipart/form-data' in request.content_type:
-            value = int(request.POST.get('value', 0))
-        else:
-            # Fall back to regular POST data
-            value = int(request.POST.get('value', 0))
+                if request.body:
+                    data = json.loads(request.body)
+                    value = int(data.get('value', 0))
+                else:
+                    value = 0
+            except (json.JSONDecodeError, ValueError, TypeError):
+                value = 0
         
         # Validation
-        if value is None:
-            return JsonResponse({'error': 'No vote value provided'}, status=400)
-            
         if value not in [-1, 0, 1]:
-            return JsonResponse({'error': 'Invalid vote value, must be -1, 0, or 1'}, status=400)
+            return JsonResponse({'error': f'Invalid vote value: {value}. Must be -1, 0, or 1'}, status=400)
         
         # Use a transaction to prevent race conditions
         with transaction.atomic():
@@ -294,17 +295,20 @@ def vote_prompt(request, prompt_id):
             # Update the total vote count on the prompt
             prompt.update_vote_count()
             
-        # Return the updated values    
-        return JsonResponse({
+        # Return the updated values
+        response_data = {
             'total_votes': prompt.total_votes,
-            'user_vote': current_vote
-        })
+            'user_vote': current_vote,
+            'success': True
+        }
+        print(f"Response data: {response_data}")
+        return JsonResponse(response_data)
     except Prompt.DoesNotExist:
-        return JsonResponse({'error': 'Prompt not found'}, status=404)
-    except ValueError as e:
-        return JsonResponse({'error': f'Invalid vote value: {str(e)}'}, status=400)
+        return JsonResponse({'error': 'Prompt not found', 'success': False}, status=404)
     except Exception as e:
-        return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': f'Server error: {str(e)}', 'success': False}, status=500)
 
 @login_required
 def add_comment(request, prompt_id):

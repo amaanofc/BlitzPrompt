@@ -4,6 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>BlitzPrompt - DeepSeek Wrapper</title>
 
     <!-- Bootstrap CSS -->
@@ -192,15 +193,16 @@
       }
 
       .vote-btn.active {
-        background-color: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
+        background-color: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-color) !important;
         box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        transform: scale(1.05);
       }
 
       .vote-btn.active.btn-outline-danger {
-        background-color: var(--accent-color);
-        border-color: var(--accent-color);
+        background-color: var(--accent-color) !important;
+        border-color: var(--accent-color) !important;
         box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
       }
 
