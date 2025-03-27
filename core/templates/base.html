@@ -72,6 +72,87 @@
         transition: transform 0.3s ease, box-shadow 0.3s ease;
       }
 
+      .card-body {
+        background-color: #2a2a2a;
+        color: var(--text-color);
+      }
+
+      /* How It Works section cards */
+      .how-it-works .card {
+        background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.1);
+      }
+
+      .how-it-works .card-body {
+        background: transparent;
+        padding: 2rem;
+      }
+
+      .how-it-works .feature-icon {
+        color: #ff8c00;
+        text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+      }
+
+      .how-it-works .h5 {
+        color: #ffa366;
+        margin-bottom: 1rem;
+      }
+
+      .how-it-works .text-muted {
+        color: #ffb366 !important;
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+
+      /* Quick Access section cards */
+      .quick-access .card {
+        background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.1);
+      }
+
+      .quick-access .card-body {
+        background: transparent;
+        padding: 2rem;
+      }
+
+      .quick-access .fa-2x {
+        color: #ff8c00;
+        text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+      }
+
+      .quick-access .h5 {
+        color: #ffa366;
+        margin-bottom: 1rem;
+      }
+
+      .quick-access .text-muted {
+        color: #ffb366 !important;
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+
+      /* Hover effects for these specific cards */
+      .how-it-works .card:hover,
+      .quick-access .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
+        border-color: rgba(255, 165, 0, 0.5);
+      }
+
+      /* Override Bootstrap's text-primary for icons in these sections */
+      .how-it-works .text-primary,
+      .quick-access .text-primary {
+        color: #ff8c00 !important;
+      }
+
+      /* Override Bootstrap's text-muted for these sections */
+      .how-it-works .text-muted,
+      .quick-access .text-muted {
+        color: #ffb366 !important;
+      }
+
       .card:hover {
         transform: translateY(-5px);
         box-shadow: 0 6px 12px rgba(255, 0, 0, 0.1);

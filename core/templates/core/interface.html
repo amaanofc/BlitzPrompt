@@ -6,7 +6,7 @@
     <div class="row">
         <!-- Sidebar -->
         <div class="col-md-3">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Favorite Prompts</h5>
                     <div class="list-group">
@@ -20,107 +20,166 @@
                         {% endfor %}
                     </div>
                     <a href="{% url 'prompt_library' %}" class="btn btn-primary mt-3 w-100">
-                        Browse Prompt Library
+                        <i class="fas fa-book me-2"></i>Browse Prompt Library
                     </a>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Card -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="document.getElementById('create-tab').click()">
+                            <i class="fas fa-plus me-2"></i>Create New Prompt
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="window.location.href='{% url 'prompt_library' %}'">
+                            <i class="fas fa-search me-2"></i>Find Prompts
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Area -->
         <div class="col-md-9">
+            <!-- Welcome Card -->
+            <div class="card mb-4 welcome-card bg-gradient">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Welcome to BlitzPrompt Interface!</h4>
+                    <p class="lead">Get started by selecting a prompt from your favorites, browsing the library, or creating a new one.</p>
+                    <p>The right prompt can dramatically improve your AI interactions. Choose wisely!</p>
+                </div>
+            </div>
+        
+            <!-- Main Interaction Card -->
             <div class="card">
                 <div class="card-body">
-                    <!-- Prompt Creation Section -->
-                    <div class="mb-4">
-                        <h5 class="card-title">Create New Prompt</h5>
-                        <form id="promptForm" method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="promptTitle" class="form-label">Prompt Title</label>
-                                <input type="text" class="form-control" id="promptTitle" name="title" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="promptDescription" class="form-label">Description</label>
-                                <textarea class="form-control" id="promptDescription" name="description" rows="2"></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="promptContent" class="form-label">Prompt Content</label>
-                                <textarea class="form-control" id="promptContent" name="content" rows="6" required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Categories</label>
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% for category in categories %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="categories" value="{{ category.id }}" id="category{{ category.id }}">
-                                        <label class="form-check-label" for="category{{ category.id }}">
-                                            {{ category.name }}
-                                        </label>
-                                    </div>
+                    <!-- Tabs Navigation -->
+                    <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat" type="button" role="tab" aria-controls="chat" aria-selected="true">
+                                <i class="fas fa-comment-dots me-2"></i>Chat
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab" aria-controls="create" aria-selected="false">
+                                <i class="fas fa-plus me-2"></i>Create Prompt
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="myTabContent">
+                        <!-- Chat Tab -->
+                        <div class="tab-pane fade show active" id="chat" role="tabpanel" aria-labelledby="chat-tab">
+                            <!-- Prompt Selection -->
+                            <div class="mb-4">
+                                <label for="prompt-select" class="form-label">Select a Prompt</label>
+                                <select class="form-select" id="prompt-select" onchange="handlePromptSelect(this.value)">
+                                    <option value="">Choose a prompt...</option>
+                                    {% for prompt in favorites %}
+                                    <option value="{{ prompt.id }}" {% if selected_prompt.id == prompt.id %}selected{% endif %}>
+                                        {{ prompt.title }}
+                                    </option>
                                     {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Selected Prompt Display -->
+                            <div id="selected-prompt" class="mb-4" style="display: none;">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h5 class="card-title" id="prompt-title"></h5>
+                                        <p class="card-text" id="prompt-content"></p>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-warning" onclick="toggleFavorite(document.getElementById('selectedPromptId').value)" id="favoriteBtn">
+                                                ☆ Favorite
+                                            </button>
+                                            <button class="btn btn-sm btn-info" onclick="publishPrompt(document.getElementById('selectedPromptId').value)" id="publishBtn">
+                                                <i class="fas fa-share-alt me-1"></i>Publish to Library
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deletePrompt(document.getElementById('selectedPromptId').value)" id="deleteBtn">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">Create Prompt</button>
-                        </form>
-                    </div>
 
-                    <!-- Prompt Selection -->
-                    <div class="mb-4">
-                        <label for="prompt-select" class="form-label">Select a Prompt</label>
-                        <select class="form-select" id="prompt-select" onchange="handlePromptSelect(this.value)">
-                            <option value="">Choose a prompt...</option>
-                            {% for prompt in favorites %}
-                            <option value="{{ prompt.id }}" {% if selected_prompt.id == prompt.id %}selected{% endif %}>
-                                {{ prompt.title }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                            <!-- Query Input -->
+                            <form id="queryForm" method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="prompt_id" id="selectedPromptId">
+                                <div class="mb-3">
+                                    <label for="userQuery" class="form-label">Enter your question or request</label>
+                                    <textarea class="form-control" id="userQuery" name="query" rows="3" placeholder="Type your question here..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Query
+                                </button>
+                            </form>
 
-                    <!-- Selected Prompt Display -->
-                    <div id="selected-prompt" class="mb-4" style="display: none;">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h5 class="card-title" id="prompt-title"></h5>
-                                <p class="card-text" id="prompt-content"></p>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-warning" onclick="toggleFavorite('{{ selected_prompt.id|default:0 }}')" id="favoriteBtn">
-                                        {% if selected_prompt.id in favorited_ids %}★ Unfavorite{% else %}☆ Favorite{% endif %}
-                                    </button>
-                                    <button class="btn btn-sm btn-info" onclick="publishPrompt('{{ selected_prompt.id|default:0 }}')">
-                                        Publish to Library
+                            <!-- Response Area -->
+                            {% if response %}
+                            <div class="card mt-4 response-card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">DeepSeek Response</h5>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('.response-content')">
+                                        <i class="fas fa-copy"></i> Copy
                                     </button>
                                 </div>
+                                <div class="card-body">
+                                    <div class="response-content">{{ response|linebreaks }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if error %}
+                            <div class="alert alert-danger mt-4">
+                                {{ error }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Create Prompt Tab -->
+                        <div class="tab-pane fade" id="create" role="tabpanel" aria-labelledby="create-tab">
+                            <div class="create-prompt-section">
+                                <h5 class="card-title mb-3">Create New Prompt</h5>
+                                <form id="promptForm" method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="promptTitle" class="form-label">Prompt Title</label>
+                                        <input type="text" class="form-control" id="promptTitle" name="title" placeholder="Give your prompt a descriptive title" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="promptDescription" class="form-label">Description</label>
+                                        <textarea class="form-control" id="promptDescription" name="description" rows="2" placeholder="Briefly describe what this prompt is for"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="promptContent" class="form-label">Prompt Content</label>
+                                        <textarea class="form-control" id="promptContent" name="content" rows="6" placeholder="Write your prompt here... (e.g., 'You are an expert in...')" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Categories</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for category in categories %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="categories" value="{{ category.id }}" id="category{{ category.id }}">
+                                                <label class="form-check-label" for="category{{ category.id }}">
+                                                    {{ category.name }}
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Create Prompt
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Query Input -->
-                    <form id="queryForm" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="prompt_id" id="selectedPromptId">
-                        <div class="mb-3">
-                            <label for="userQuery" class="form-label">Enter your query</label>
-                            <textarea class="form-control" id="userQuery" name="query" rows="4" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Send Query</button>
-                    </form>
-
-                    <!-- Response Area -->
-                    {% if response %}
-                    <div class="card mt-4">
-                        <div class="card-body">
-                            <h5 class="card-title">DeepSeek Response</h5>
-                            <div class="response-content">{{ response|linebreaks }}</div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if error %}
-                    <div class="alert alert-danger mt-4">
-                        {{ error }}
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -129,6 +188,13 @@
 
 {% block extra_js %}
 <script>
+// Add configuration for JavaScript
+window.appConfig = {
+    isAuthenticated: {% if user.is_authenticated %}true{% else %}false{% endif %},
+    defaultPromptId: "{{ selected_prompt.id|default:'0' }}",
+    csrfToken: "{{ csrf_token }}"
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const promptSelect = document.getElementById('prompt-select');
     const selectedPrompt = document.getElementById('selected-prompt');
@@ -136,11 +202,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const promptContent = document.getElementById('prompt-content');
     const promptId = document.getElementById('selectedPromptId');
     const queryInput = document.getElementById('userQuery');
-    const submitBtn = document.getElementById('submit-btn');
+    const submitBtn = document.querySelector('#queryForm button[type="submit"]');
     const queryForm = document.getElementById('queryForm');
 
     // Initialize with default prompt if set
-    if (window.appConfig.defaultPromptId !== "0") {
+    if (window.appConfig && window.appConfig.defaultPromptId !== "0") {
         handlePromptSelect(window.appConfig.defaultPromptId);
     }
 
@@ -152,22 +218,105 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Find the prompt in favorites
-        const prompt = Array.from(document.querySelectorAll('.list-group-item')).find(
-            item => item.getAttribute('onclick').includes(promptId)
-        );
-
-        if (prompt) {
-            const title = prompt.textContent.trim();
-            const content = prompt.getAttribute('onclick').match(/'([^']+)'/g)[2].slice(1, -1);
-            
+        // Try to find the prompt in the dropdown first
+        const promptOption = Array.from(promptSelect.options).find(option => option.value === promptId);
+        
+        if (promptOption) {
+            // Using the dropdown option data
+            const title = promptOption.textContent.trim();
             promptTitle.textContent = title;
-            promptContent.textContent = content;
-            promptId.value = promptId;
+            
+            // Find the prompt in favorites list for content
+            const prompt = Array.from(document.querySelectorAll('.list-group-item')).find(
+                item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+            );
+            
+            let content = '';
+            if (prompt) {
+                // Extract content from the onclick attribute
+                const matches = prompt.getAttribute('onclick').match(/'([^']+)'/g);
+                if (matches && matches.length > 2) {
+                    content = matches[2].slice(1, -1);
+                    promptContent.textContent = content;
+                }
+            } 
+            
+            // If not in favorites list or failed to get content, try to fetch from server
+            if (!content) {
+                fetch(`/api/prompt/${promptId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            promptContent.textContent = data.content;
+                        }
+                    })
+                    .catch(error => console.error('Error fetching prompt:', error));
+            }
+            
+            document.getElementById('selectedPromptId').value = promptId;
             selectedPrompt.style.display = 'block';
             submitBtn.disabled = false;
+            
+            // Update the favorite button
+            updateFavoriteButton(promptId);
+            
+            // Update the publish/delete buttons
+            updateActionButtons(promptId);
         }
     };
+    
+    // Helper function to update favorite button state
+    function updateFavoriteButton(promptId) {
+        const favoriteBtn = document.getElementById('favoriteBtn');
+        if (!favoriteBtn) return;
+        
+        favoriteBtn.setAttribute('onclick', `toggleFavorite('${promptId}')`);
+        
+        // Set initial state based on whether prompt is in favorites
+        const isFavorited = Array.from(document.querySelectorAll('.list-group-item')).some(
+            item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+        );
+        
+        if (isFavorited) {
+            favoriteBtn.innerHTML = '★ Unfavorite';
+        } else {
+            favoriteBtn.innerHTML = '☆ Favorite';
+        }
+    }
+
+    // Helper function to update action buttons based on prompt state
+    function updateActionButtons(promptId) {
+        // Update publish button
+        fetch(`/api/prompt/${promptId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const publishBtn = document.getElementById('publishBtn');
+                    const deleteBtn = document.getElementById('deleteBtn');
+                    
+                    // Update publish button
+                    if (data.published) {
+                        publishBtn.innerHTML = '<i class="fas fa-check me-1"></i> Published';
+                        publishBtn.classList.remove('btn-info');
+                        publishBtn.classList.add('btn-success');
+                        publishBtn.disabled = true;
+                    } else {
+                        publishBtn.innerHTML = '<i class="fas fa-share-alt me-1"></i>Publish to Library';
+                        publishBtn.classList.remove('btn-success');
+                        publishBtn.classList.add('btn-info');
+                        publishBtn.disabled = false;
+                    }
+                    
+                    // Only show delete button for prompt author
+                    if (data.is_author) {
+                        deleteBtn.style.display = 'inline-block';
+                    } else {
+                        deleteBtn.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching prompt data:', error));
+    }
 
     // Set prompt from favorites list
     window.setPrompt = function(id, title, content) {
@@ -177,11 +326,18 @@ document.addEventListener('DOMContentLoaded', function() {
         promptId.value = id;
         selectedPrompt.style.display = 'block';
         submitBtn.disabled = false;
+        
+        // Update action buttons
+        updateFavoriteButton(id);
+        updateActionButtons(id);
+        
+        // Switch to the chat tab
+        document.getElementById('chat-tab').click();
     };
 
     // Toggle favorite
     window.toggleFavorite = async function(promptId) {
-        if (!window.appConfig.isAuthenticated) {
+        if (!window.appConfig || !window.appConfig.isAuthenticated) {
             window.location.href = '/login/';
             return;
         }
@@ -199,8 +355,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 const favoriteBtn = document.getElementById('favoriteBtn');
                 if (data.is_favorited) {
                     favoriteBtn.innerHTML = '★ Unfavorite';
+                    
+                    // Check if we need to add to favorites list
+                    const existingItem = Array.from(document.querySelectorAll('.list-group-item')).find(
+                        item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+                    );
+                    
+                    if (!existingItem) {
+                        // Get prompt info
+                        const title = document.getElementById('prompt-title').textContent;
+                        const content = document.getElementById('prompt-content').textContent;
+                        
+                        // Add to favorites sidebar
+                        const listGroup = document.querySelector('.list-group');
+                        const newPromptItem = document.createElement('a');
+                        newPromptItem.href = '#';
+                        newPromptItem.className = 'list-group-item list-group-item-action';
+                        newPromptItem.textContent = title;
+                        newPromptItem.setAttribute('onclick', `setPrompt('${promptId}', '${title}', '${content.replace(/'/g, "\\'")}')`);
+                        listGroup.appendChild(newPromptItem);
+                        
+                        // Add to dropdown if not already there
+                        const promptSelect = document.getElementById('prompt-select');
+                        const existingOption = Array.from(promptSelect.options).find(option => option.value === promptId);
+                        if (!existingOption) {
+                            const option = document.createElement('option');
+                            option.value = promptId;
+                            option.textContent = title;
+                            promptSelect.appendChild(option);
+                        }
+                    }
                 } else {
                     favoriteBtn.innerHTML = '☆ Favorite';
+                    
+                    // Remove from favorites list if exists
+                    const existingItem = Array.from(document.querySelectorAll('.list-group-item')).find(
+                        item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+                    );
+                    
+                    if (existingItem) {
+                        existingItem.remove();
+                    }
                 }
             }
         } catch (error) {
@@ -210,12 +405,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Publish prompt
     window.publishPrompt = async function(promptId) {
-        if (!window.appConfig.isAuthenticated) {
+        if (!window.appConfig || !window.appConfig.isAuthenticated) {
             window.location.href = '/login/';
             return;
         }
 
         try {
+            // Get the button to update UI
+            const publishBtn = document.querySelector('button[onclick*="publishPrompt"]');
+            publishBtn.disabled = true;
+            publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Publishing...';
+            
             const response = await fetch(`/publish-prompt/${promptId}/`, {
                 method: 'POST',
                 headers: {
@@ -225,11 +425,41 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             if (response.ok) {
-                alert('Prompt published successfully!');
+                publishBtn.innerHTML = '<i class="fas fa-check me-1"></i> Published';
+                publishBtn.classList.remove('btn-info');
+                publishBtn.classList.add('btn-success');
+                publishBtn.disabled = true;
+                
+                // Show success message
+                alert('Your prompt has been published to the library successfully!');
+            } else {
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '<i class="fas fa-share-alt me-1"></i>Publish to Library';
+                alert('Error publishing prompt: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
             console.error('Error publishing prompt:', error);
+            alert('An error occurred while publishing the prompt.');
+            
+            // Reset button
+            const publishBtn = document.querySelector('button[onclick*="publishPrompt"]');
+            if (publishBtn) {
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '<i class="fas fa-share-alt me-1"></i>Publish to Library';
+            }
         }
+    };
+
+    // Copy response to clipboard
+    window.copyToClipboard = function(selector) {
+        const content = document.querySelector(selector).innerText;
+        navigator.clipboard.writeText(content)
+            .then(() => {
+                alert('Response copied to clipboard!');
+            })
+            .catch(err => {
+                console.error('Error copying text: ', err);
+            });
     };
 
     // Handle form submission
@@ -239,10 +469,69 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please select a prompt first');
         }
     });
+
+    // Delete prompt
+    window.deletePrompt = async function(promptId) {
+        if (!window.appConfig || !window.appConfig.isAuthenticated) {
+            window.location.href = '/login/';
+            return;
+        }
+
+        // Confirm deletion
+        if (!confirm('Are you sure you want to delete this prompt? This cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/delete-prompt/${promptId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                // Remove from favorites list
+                const existingItem = Array.from(document.querySelectorAll('.list-group-item')).find(
+                    item => item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${promptId}'`)
+                );
+                
+                if (existingItem) {
+                    existingItem.remove();
+                }
+                
+                // Remove from dropdown
+                const option = Array.from(promptSelect.options).find(option => option.value === promptId);
+                if (option) {
+                    option.remove();
+                }
+                
+                // Clear selection and hide prompt display
+                promptSelect.value = '';
+                selectedPrompt.style.display = 'none';
+                submitBtn.disabled = true;
+                
+                // Show success message
+                alert(data.message || 'Prompt deleted successfully');
+            } else {
+                alert('Error deleting prompt: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error deleting prompt:', error);
+            alert('An error occurred while deleting the prompt.');
+        }
+    };
 });
 
 document.getElementById('promptForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    // Disable submit button to prevent double submission
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+    
     const formData = new FormData(this);
     
     fetch('{% url "create_prompt" %}', {
@@ -254,52 +543,120 @@ document.getElementById('promptForm').addEventListener('submit', function(e) {
     })
     .then(response => response.json())
     .then(data => {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Prompt';
+        
         if (data.success) {
-            document.getElementById('selectedPromptId').value = data.prompt_id;
             alert('Prompt created successfully!');
+            
+            // Add the new prompt to favorites list and dropdown
+            const title = formData.get('title');
+            const content = formData.get('content');
+            const promptId = data.prompt_id;
+            
+            // Add to favorites sidebar
+            const listGroup = document.querySelector('.list-group');
+            const newPromptItem = document.createElement('a');
+            newPromptItem.href = '#';
+            newPromptItem.className = 'list-group-item list-group-item-action';
+            newPromptItem.textContent = title;
+            newPromptItem.setAttribute('onclick', `setPrompt('${promptId}', '${title}', '${content.replace(/'/g, "\\'")}')`);
+            listGroup.appendChild(newPromptItem);
+            
+            // Add to dropdown
+            const promptSelect = document.getElementById('prompt-select');
+            const option = document.createElement('option');
+            option.value = promptId;
+            option.textContent = title;
+            promptSelect.appendChild(option);
+            
+            // Select the new prompt
+            promptSelect.value = promptId;
+            handlePromptSelect(promptId);
+            
+            // Clear the form
+            this.reset();
+            
+            // Show a message about publishing
+            const createTab = document.getElementById('create');
+            const publishMessage = document.createElement('div');
+            publishMessage.className = 'alert alert-success mt-3';
+            publishMessage.innerHTML = '<i class="fas fa-info-circle me-2"></i>Your prompt has been created and automatically added to your favorites. To make it available to others, use the "Publish to Library" button when viewing the prompt.';
+            createTab.querySelector('.create-prompt-section').appendChild(publishMessage);
+            
+            // Remove the message after 10 seconds
+            setTimeout(() => {
+                publishMessage.remove();
+            }, 10000);
+            
+            // Switch to chat tab and select the new prompt
+            document.getElementById('chat-tab').click();
         } else {
             alert('Error creating prompt: ' + data.error);
         }
-    });
-});
-
-document.getElementById('favoriteBtn').addEventListener('click', function() {
-    const promptId = document.getElementById('selectedPromptId').value;
-    fetch(`/toggle-favorite/${promptId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.is_favorited) {
-            this.classList.add('btn-primary');
-            this.classList.remove('btn-outline-primary');
-        } else {
-            this.classList.remove('btn-primary');
-            this.classList.add('btn-outline-primary');
-        }
-    });
-});
-
-document.getElementById('publishBtn').addEventListener('click', function() {
-    const promptId = document.getElementById('selectedPromptId').value;
-    fetch(`/publish-prompt/${promptId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.published) {
-            alert('Prompt published successfully!');
-        } else {
-            alert('Error publishing prompt');
-        }
+    .catch(error => {
+        // Re-enable submit button on error
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Create Prompt';
+        
+        console.error('Error creating prompt:', error);
+        alert('An error occurred while creating the prompt.');
     });
 });
 </script>
 {% endblock %}
+
+<!-- Add styles for the interface page -->
+<style>
+    .welcome-card {
+        background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        border-radius: 8px;
+    }
+    
+    .welcome-card h4 {
+        color: #ffa366;
+    }
+    
+    .welcome-card p {
+        color: #ffb366;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #ffffff;
+        border: none;
+        padding: 10px 20px;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #ff8c00;
+        background-color: transparent;
+        border-bottom: 2px solid #ff8c00;
+    }
+    
+    .response-card {
+        border: 1px solid rgba(255, 165, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.1);
+    }
+    
+    .response-card .card-header {
+        background-color: #2d1f1f;
+        border-bottom: 1px solid rgba(255, 165, 0, 0.3);
+    }
+    
+    textarea.form-control {
+        background-color: #242424;
+        color: #ffffff;
+        border: 1px solid #3d3d3d;
+    }
+    
+    textarea.form-control:focus {
+        background-color: #2a2a2a;
+        color: #ffffff;
+        border-color: #ff8c00;
+        box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
+    }
+</style>
 {% endblock %}

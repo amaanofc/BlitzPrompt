@@ -8,6 +8,7 @@ from .models import Prompt, Category, Vote, Comment
 import json
 import requests
 from django.conf import settings
+from django.db import transaction
 
 def home(request):
     # Get trending prompts (top 6 by votes)
@@ -75,6 +76,9 @@ def gpt_interface(request):
         favorites = []
         favorited_ids = []
     
+    # Get categories for the create prompt tab
+    categories = Category.objects.all()
+    
     if request.method == 'POST':
         try:
             prompt_id = request.POST.get('prompt_id')
@@ -112,30 +116,40 @@ def gpt_interface(request):
                 'response': ai_response,
                 'favorites': favorites,
                 'selected_prompt': selected_prompt,
-                'favorited_ids': favorited_ids
+                'favorited_ids': favorited_ids,
+                'categories': categories
             })
         except Exception as e:
             return render(request, 'core/interface.html', {
                 'error': str(e),
                 'favorites': favorites,
-                'favorited_ids': favorited_ids
+                'favorited_ids': favorited_ids,
+                'categories': categories
             })
     
     return render(request, 'core/interface.html', {
         'favorites': favorites,
-        'favorited_ids': favorited_ids
+        'favorited_ids': favorited_ids,
+        'categories': categories
     })
 
 @login_required
 def toggle_favorite(request, prompt_id):
     try:
         prompt = Prompt.objects.get(id=prompt_id)
-        if prompt in request.user.favorites.all():
+        
+        # Check if the prompt is already in favorites
+        is_favorited = request.user.favorites.filter(id=prompt_id).exists()
+        
+        if is_favorited:
+            # Remove from favorites
             request.user.favorites.remove(prompt)
             is_favorited = False
         else:
-            request.user.favorites.add(prompt)
+            # Add to favorites - using set() instead of add() to prevent duplicates
+            request.user.favorites.set([prompt], clear=False)
             is_favorited = True
+            
         return JsonResponse({'is_favorited': is_favorited})
     except Prompt.DoesNotExist:
         return JsonResponse({'error': 'Prompt not found'}, status=404)
@@ -144,6 +158,10 @@ def toggle_favorite(request, prompt_id):
 def publish_prompt(request, prompt_id):
     try:
         prompt = Prompt.objects.get(id=prompt_id)
+        # Only allow the author to publish their prompt
+        if prompt.author != request.user:
+            return JsonResponse({'error': 'You can only publish your own prompts'}, status=403)
+            
         prompt.published = True
         prompt.save()
         return JsonResponse({'published': True})
@@ -240,22 +258,42 @@ def create_prompt(request):
             description = request.POST.get('description')
             content = request.POST.get('content')
             category_ids = request.POST.getlist('categories')
-
-            prompt = Prompt.objects.create(
-                title=title,
-                description=description,
-                content=content,
-                author=request.user
-            )
-
-            # Add selected categories
-            for category_id in category_ids:
-                try:
-                    category = Category.objects.get(id=category_id)
-                    prompt.categories.add(category)
-                except Category.DoesNotExist:
-                    pass
-
+            
+            # Use atomic transaction to prevent duplicates
+            with transaction.atomic():
+                # Check if a similar prompt already exists for this user
+                existing_prompt = Prompt.objects.filter(
+                    title=title,
+                    author=request.user,
+                    content=content
+                ).first()
+                
+                if existing_prompt:
+                    return JsonResponse({
+                        'success': True,
+                        'prompt_id': existing_prompt.id,
+                        'message': 'Prompt already exists'
+                    })
+    
+                # Create the prompt
+                prompt = Prompt.objects.create(
+                    title=title,
+                    description=description,
+                    content=content,
+                    author=request.user
+                )
+    
+                # Add selected categories
+                for category_id in category_ids:
+                    try:
+                        category = Category.objects.get(id=category_id)
+                        prompt.categories.add(category)
+                    except Category.DoesNotExist:
+                        pass
+                
+                # Automatically add to user's favorites
+                request.user.favorites.add(prompt)
+    
             return JsonResponse({
                 'success': True,
                 'prompt_id': prompt.id
@@ -266,3 +304,42 @@ def create_prompt(request):
                 'error': str(e)
             })
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+def get_prompt_info(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        # Check if the user has access (authored or published)
+        if prompt.author == request.user or prompt.published:
+            return JsonResponse({
+                'success': True,
+                'title': prompt.title,
+                'content': prompt.content,
+                'description': prompt.description,
+                'published': prompt.published,
+                'is_author': prompt.author == request.user
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'You do not have access to this prompt'
+            }, status=403)
+    except Prompt.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Prompt not found'
+        }, status=404)
+
+@login_required
+def delete_prompt(request, prompt_id):
+    try:
+        prompt = Prompt.objects.get(id=prompt_id)
+        # Only allow the author to delete their prompt
+        if prompt.author != request.user:
+            return JsonResponse({'error': 'You can only delete your own prompts'}, status=403)
+            
+        prompt_title = prompt.title
+        prompt.delete()
+        return JsonResponse({'success': True, 'message': f'Prompt "{prompt_title}" has been deleted'})
+    except Prompt.DoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
