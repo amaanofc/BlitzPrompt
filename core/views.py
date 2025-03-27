@@ -79,6 +79,23 @@ def gpt_interface(request):
     # Get categories for the create prompt tab
     categories = Category.objects.all()
     
+    # Check if a prompt was requested via query parameter
+    prompt_id = request.GET.get('prompt_id')
+    selected_prompt = None
+    
+    if prompt_id:
+        try:
+            # Try to get the prompt
+            selected_prompt = Prompt.objects.get(id=prompt_id)
+            
+            # If user doesn't have this prompt in favorites, add it
+            if request.user.is_authenticated and not request.user.favorites.filter(id=prompt_id).exists():
+                request.user.favorites.add(selected_prompt)
+                favorites = request.user.favorites.all()  # Refresh favorites
+                favorited_ids = [p.id for p in favorites]
+        except Prompt.DoesNotExist:
+            pass
+    
     if request.method == 'POST':
         try:
             prompt_id = request.POST.get('prompt_id')
@@ -123,12 +140,14 @@ def gpt_interface(request):
             return render(request, 'core/interface.html', {
                 'error': str(e),
                 'favorites': favorites,
+                'selected_prompt': selected_prompt,
                 'favorited_ids': favorited_ids,
                 'categories': categories
             })
     
     return render(request, 'core/interface.html', {
         'favorites': favorites,
+        'selected_prompt': selected_prompt,
         'favorited_ids': favorited_ids,
         'categories': categories
     })
@@ -202,8 +221,15 @@ def vote_prompt(request, prompt_id):
 def add_comment(request, prompt_id):
     try:
         prompt = Prompt.objects.get(id=prompt_id)
-        content = request.POST.get('content')
-        parent_id = request.POST.get('parent_id')
+        
+        # Parse data correctly based on request type
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            content = data.get('content')
+            parent_id = data.get('parent_id')
+        else:
+            content = request.POST.get('content')
+            parent_id = request.POST.get('parent_id')
         
         if not content:
             return JsonResponse({'error': 'Comment content is required'}, status=400)
