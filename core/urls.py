@@ -13,4 +13,5 @@ urlpatterns = [
     path('add-comment/<int:prompt_id>/', views.add_comment, name='add_comment'),
     path('profile/', views.profile, name='profile'),
     path('favorites/', views.favorites, name='favorites'),
+    path('create-prompt/', views.create_prompt, name='create_prompt'),
 ] 

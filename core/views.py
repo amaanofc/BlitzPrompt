@@ -231,3 +231,38 @@ def favorites(request):
     return render(request, 'core/favorites.html', {
         'favorite_prompts': favorite_prompts
     })
+
+@login_required
+def create_prompt(request):
+    if request.method == 'POST':
+        try:
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            content = request.POST.get('content')
+            category_ids = request.POST.getlist('categories')
+
+            prompt = Prompt.objects.create(
+                title=title,
+                description=description,
+                content=content,
+                author=request.user
+            )
+
+            # Add selected categories
+            for category_id in category_ids:
+                try:
+                    category = Category.objects.get(id=category_id)
+                    prompt.categories.add(category)
+                except Category.DoesNotExist:
+                    pass
+
+            return JsonResponse({
+                'success': True,
+                'prompt_id': prompt.id
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})

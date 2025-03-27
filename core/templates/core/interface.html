@@ -30,6 +30,40 @@
         <div class="col-md-9">
             <div class="card">
                 <div class="card-body">
+                    <!-- Prompt Creation Section -->
+                    <div class="mb-4">
+                        <h5 class="card-title">Create New Prompt</h5>
+                        <form id="promptForm" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="promptTitle" class="form-label">Prompt Title</label>
+                                <input type="text" class="form-control" id="promptTitle" name="title" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="promptDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="promptDescription" name="description" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="promptContent" class="form-label">Prompt Content</label>
+                                <textarea class="form-control" id="promptContent" name="content" rows="6" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Categories</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for category in categories %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="categories" value="{{ category.id }}" id="category{{ category.id }}">
+                                        <label class="form-check-label" for="category{{ category.id }}">
+                                            {{ category.name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Prompt</button>
+                        </form>
+                    </div>
+
                     <!-- Prompt Selection -->
                     <div class="mb-4">
                         <label for="prompt-select" class="form-label">Select a Prompt</label>
@@ -62,16 +96,14 @@
                     </div>
 
                     <!-- Query Input -->
-                    <form method="post" id="query-form">
+                    <form id="queryForm" method="post">
                         {% csrf_token %}
-                        <input type="hidden" name="prompt_id" id="prompt_id">
+                        <input type="hidden" name="prompt_id" id="selectedPromptId">
                         <div class="mb-3">
-                            <label for="query" class="form-label">Your Query</label>
-                            <textarea name="query" id="query" class="form-control" rows="4" placeholder="Type your query here..."></textarea>
+                            <label for="userQuery" class="form-label">Enter your query</label>
+                            <textarea class="form-control" id="userQuery" name="query" rows="4" required></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
-                            Ask DeepSeek
-                        </button>
+                        <button type="submit" class="btn btn-primary">Send Query</button>
                     </form>
 
                     <!-- Response Area -->
@@ -102,10 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedPrompt = document.getElementById('selected-prompt');
     const promptTitle = document.getElementById('prompt-title');
     const promptContent = document.getElementById('prompt-content');
-    const promptId = document.getElementById('prompt_id');
-    const queryInput = document.getElementById('query');
+    const promptId = document.getElementById('selectedPromptId');
+    const queryInput = document.getElementById('userQuery');
     const submitBtn = document.getElementById('submit-btn');
-    const queryForm = document.getElementById('query-form');
+    const queryForm = document.getElementById('queryForm');
 
     // Initialize with default prompt if set
     if (window.appConfig.defaultPromptId !== "0") {
@@ -205,6 +237,66 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!promptId.value) {
             e.preventDefault();
             alert('Please select a prompt first');
+        }
+    });
+});
+
+document.getElementById('promptForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('{% url "create_prompt" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('selectedPromptId').value = data.prompt_id;
+            alert('Prompt created successfully!');
+        } else {
+            alert('Error creating prompt: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('favoriteBtn').addEventListener('click', function() {
+    const promptId = document.getElementById('selectedPromptId').value;
+    fetch(`/toggle-favorite/${promptId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.is_favorited) {
+            this.classList.add('btn-primary');
+            this.classList.remove('btn-outline-primary');
+        } else {
+            this.classList.remove('btn-primary');
+            this.classList.add('btn-outline-primary');
+        }
+    });
+});
+
+document.getElementById('publishBtn').addEventListener('click', function() {
+    const promptId = document.getElementById('selectedPromptId').value;
+    fetch(`/publish-prompt/${promptId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.published) {
+            alert('Prompt published successfully!');
+        } else {
+            alert('Error publishing prompt');
         }
     });
 });
