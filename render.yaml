@@ -3,7 +3,7 @@ services:
     name: blitzprompt
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn BlitzPrompt.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "gunicorn BlitzPrompt.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -15,6 +15,4 @@ services:
         generateValue: true
       - key: DEEPSEEK_API_KEY
         sync: false
-      - key: PORT
-        value: 10000
     plan: free
