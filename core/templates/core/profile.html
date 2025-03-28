@@ -1,54 +1,46 @@
-{% extends 'core/base.html' %} {% load static %} {% block content %}
-<div class="container-fluid py-5">
-  <div class="container">
-    <h1 class="display-4 mb-4">Your Profile</h1>
+{% extends 'core/base.html' %} {% load static %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+{% endblock %}
 
-    <!-- Profile Header -->
-    <div class="row mb-5">
-      <div class="col-md-4 text-center">
-        <div class="profile-avatar mb-3">
-          <i class="fas fa-user-circle fa-5x text-primary"></i>
-        </div>
-        <h2>{{ user.username }}</h2>
-        <p style="color: #ffb366">
-          Member since {{ user.date_joined|date:"F Y" }}
-        </p>
+{% block content %}
+<div class="container py-5">
+  <h1 class="display-4 mb-4 theme-title">Your Profile</h1>
+
+  <!-- Profile Header -->
+  <div class="row mb-5">
+    <div class="col-md-4 text-center">
+      <div class="profile-avatar mb-3">
+        <i class="fas fa-user-circle fa-5x" style="color: #ff4444;"></i>
       </div>
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div
-            class="card-body"
-            style="
-              background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
-              border: 1px solid rgba(255, 165, 0, 0.3);
-            "
-          >
-            <h3 class="card-title" style="color: #ff8c00">
-              Profile Statistics
-            </h3>
-            <div class="row text-center">
-              <div class="col-md-4">
-                <h4 style="color: #ff8c00">{{ user_prompts.count }}</h4>
-                <p style="color: #ffb366">Prompts Created</p>
+      <h2 class="theme-title">{{ user.username }}</h2>
+      <p class="theme-text">
+        Member since {{ user.date_joined|date:"F Y" }}
+      </p>
+    </div>
+    <div class="col-md-8">
+      <div class="accent-box">
+        <h3 class="theme-title mb-4">Profile Statistics</h3>
+        <div class="row text-center">
+          <div class="col-md-4">
+            <h4 class="theme-title">{{ user_prompts.count }}</h4>
+            <p class="theme-text">Prompts Created</p>
+          </div>
+          <div class="col-md-4">
+            <h4 class="theme-title">{{ favorite_prompts.count }}</h4>
+            <p class="theme-text">Favorites</p>
+          </div>
+          <div class="col-md-4">
+            <div class="stats">
+              <div class="stat mb-3">
+                <div class="stat-title theme-text">Published Prompts</div>
+                <div class="stat-value theme-title">
+                  {{ published_count }}
+                </div>
               </div>
-              <div class="col-md-4">
-                <h4 style="color: #ff8c00">{{ favorite_prompts.count }}</h4>
-                <p style="color: #ffb366">Favorites</p>
-              </div>
-              <div class="col-md-4">
-                <div class="stats">
-                  <div class="stat">
-                    <div class="stat-title">Published Prompts</div>
-                    <div class="stat-value" style="color: #ff8c00">
-                      {{ published_count }}
-                    </div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Drafts</div>
-                    <div class="stat-value" style="color: #ff8c00">
-                      {{ draft_count }}
-                    </div>
-                  </div>
+              <div class="stat">
+                <div class="stat-title theme-text">Drafts</div>
+                <div class="stat-value theme-title">
+                  {{ draft_count }}
                 </div>
               </div>
             </div>
@@ -56,142 +48,122 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Prompts Section -->
-    <div class="row">
-      <div class="col-12">
-        <h3 class="mb-3">Your Prompts</h3>
-        <div class="row g-4">
-          {% for prompt in user_prompts %}
-          <div class="col-md-4 col-lg-3">
-            <div
-              class="card h-100 shadow-sm prompt-card"
-              style="
-                background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
-                border: 1px solid rgba(255, 165, 0, 0.3);
-              "
-            >
-              <div class="card-body">
-                <h5 class="card-title" style="color: #ff8c00">
-                  {{ prompt.title }}
-                </h5>
-                <p class="card-text small" style="color: #ffb366">
-                  {{ prompt.description|truncatechars:100 }}
-                </p>
-                <div class="d-flex justify-content-between align-items-center">
-                  <span
-                    class="badge {% if prompt.published %}bg-danger{% else %}bg-secondary{% endif %}"
-                  >
-                    {% if prompt.published %}Published{% else %}Draft{% endif %}
-                  </span>
-                  <small style="color: #ffb366">
-                    {{ prompt.total_votes }} votes
-                  </small>
-                </div>
+  <!-- Prompts Section -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <h3 class="theme-title mb-4">Your Prompts</h3>
+      <div class="row g-4">
+        {% for prompt in user_prompts %}
+        <div class="col-md-4 col-lg-3">
+          <div class="card h-100 shadow-lg border-0 prompt-card">
+            <div class="card-body p-4">
+              <h5 class="theme-title mb-3">
+                {{ prompt.title }}
+              </h5>
+              <p class="theme-text small mb-3">
+                {{ prompt.description|truncatechars:100 }}
+              </p>
+              <div class="d-flex justify-content-between align-items-center">
+                <span
+                  class="badge {% if prompt.published %}bg-success{% else %}bg-secondary{% endif %}"
+                >
+                  {% if prompt.published %}Published{% else %}Draft{% endif %}
+                </span>
+                <small class="theme-text">
+                  <i class="fas fa-arrow-up"></i> {{ prompt.total_votes }}
+                </small>
               </div>
             </div>
           </div>
-          {% empty %}
-          <div class="col-12">
-            <div class="alert alert-info">
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <div class="bg-dark rounded p-4 text-center">
+            <i class="fas fa-file-alt fa-3x mb-3 theme-title" style="opacity: 0.5;"></i>
+            <p class="theme-text">
               You haven't created any prompts yet.
-              <a href="{% url 'interface' %}" class="alert-link"
-                >Create your first prompt</a
-              >!
-            </div>
+              <a href="{% url 'interface' %}" class="theme-title text-decoration-none">Create your first prompt</a>!
+            </p>
           </div>
-          {% endfor %}
         </div>
+        {% endfor %}
       </div>
     </div>
+  </div>
 
-    <!-- Favorite Prompts -->
-    <div class="row mt-5">
-      <div class="col-12">
-        <h3 class="mb-4">Your Favorites</h3>
-        <div class="row">
-          {% for prompt in favorite_prompts %}
-          <div class="col-md-4 mb-4">
-            <div
-              class="card h-100 prompt-card"
-              style="
-                background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
-                border: 1px solid rgba(255, 165, 0, 0.3);
-              "
-            >
-              <div class="card-body">
-                <h5 class="card-title" style="color: #ff8c00">
-                  {{ prompt.title }}
-                </h5>
-                <p class="card-text" style="color: #ffb366">
-                  {{ prompt.description|truncatewords:30 }}
-                </p>
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="btn-group">
-                    <button
-                      class="btn btn-sm btn-outline-primary vote-btn"
-                      data-prompt-id="{{ prompt.id }}"
-                      data-value="1"
-                    >
-                      <i class="fas fa-arrow-up"></i>
-                    </button>
-                    <span class="mx-2 vote-count"
-                      >{{ prompt.total_votes }}</span
-                    >
-                    <button
-                      class="btn btn-sm btn-outline-danger vote-btn"
-                      data-prompt-id="{{ prompt.id }}"
-                      data-value="-1"
-                    >
-                      <i class="fas fa-arrow-down"></i>
-                    </button>
-                  </div>
-                  <small style="color: #ffb366"
-                    >{{ prompt.total_comments }} comments</small
+  <!-- Favorite Prompts -->
+  <div class="row">
+    <div class="col-12">
+      <h3 class="theme-title mb-4">Your Favorites</h3>
+      <div class="row g-4">
+        {% for prompt in favorite_prompts %}
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 shadow-lg border-0 prompt-card">
+            <div class="card-body p-4">
+              <h5 class="theme-title mb-3">
+                {{ prompt.title }}
+              </h5>
+              <p class="theme-text mb-3">
+                {{ prompt.description|truncatewords:20 }}
+              </p>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="btn-group">
+                  <button
+                    class="btn btn-sm btn-outline-primary vote-btn"
+                    data-prompt-id="{{ prompt.id }}"
+                    data-value="1"
                   >
-                </div>
-                <div class="mt-2">
-                  {% for category in prompt.categories.all %}
-                  <span class="badge bg-secondary me-1"
-                    >{{ category.name }}</span
+                    <i class="fas fa-arrow-up"></i>
+                  </button>
+                  <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
+                  <button
+                    class="btn btn-sm btn-outline-danger vote-btn"
+                    data-prompt-id="{{ prompt.id }}"
+                    data-value="-1"
                   >
-                  {% endfor %}
+                    <i class="fas fa-arrow-down"></i>
+                  </button>
                 </div>
+                <small class="theme-text">
+                  <i class="fas fa-comment"></i> {{ prompt.total_comments }}
+                </small>
               </div>
-              <div
-                class="card-footer"
-                style="
-                  border-top: 1px solid rgba(255, 165, 0, 0.3);
-                  background: transparent;
-                "
-              >
-                <div class="d-flex justify-content-between">
-                  <a
-                    href="{% url 'prompt_detail' prompt.id %}"
-                    class="btn btn-primary btn-sm"
-                    >View Details</a
-                  >
-                  <a
-                    href="{% url 'interface' %}?prompt_id={{ prompt.id }}"
-                    class="btn btn-outline-primary btn-sm"
-                    >Use Prompt</a
-                  >
-                </div>
+              <div class="mb-3">
+                {% for category in prompt.categories.all %}
+                <span class="badge theme-badge me-1">{{ category.name }}</span>
+                {% endfor %}
+              </div>
+              <div class="d-flex justify-content-between mt-auto">
+                <a
+                  href="{% url 'prompt_detail' prompt.id %}"
+                  class="btn btn-sm theme-btn-primary"
+                >
+                  <i class="fas fa-eye me-1"></i> View
+                </a>
+                <a
+                  href="{% url 'interface' %}?prompt_id={{ prompt.id }}"
+                  class="btn btn-sm theme-btn-outline"
+                >
+                  <i class="fas fa-robot me-1"></i> Use
+                </a>
               </div>
             </div>
           </div>
-          {% empty %}
-          <div class="col-12">
-            <div class="alert alert-info">
-              You haven't favorited any prompts yet.
-              <a href="{% url 'prompt_library' %}" class="alert-link"
-                >Browse the prompt library</a
-              >
-              to find some!
-            </div>
-          </div>
-          {% endfor %}
         </div>
+        {% empty %}
+        <div class="col-12">
+          <div class="bg-dark rounded p-4 text-center">
+            <i class="far fa-star fa-3x mb-3 theme-title" style="opacity: 0.5;"></i>
+            <p class="theme-text">
+              You haven't favorited any prompts yet.
+              <a href="{% url 'prompt_library' %}" class="theme-title text-decoration-none">Browse the prompt library</a>
+              to find some!
+            </p>
+          </div>
+        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -241,4 +213,4 @@
     });
   });
 </script>
-{% endblock %} {% endblock %}
+{% endblock extra_js %} {% endblock content %}

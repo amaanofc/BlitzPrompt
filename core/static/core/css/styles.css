@@ -1,5 +1,7 @@
 .prompt-card {
     transition: transform 0.2s;
+    background-color: #1e1e1e !important;
+    border: 1px solid #333 !important;
 }
 
 .prompt-card:hover {
@@ -37,93 +39,128 @@
 }
 
 .theme-title {
-    color: #ff8c00;
+    color: #ff4444;
     font-weight: 600;
 }
 
 .theme-text {
-    color: #ffb366;
+    color: #e0e0e0;
     line-height: 1.6;
 }
 
 .theme-muted {
-    color: #c4c4c4;
+    color: #a0a0a0;
 }
 
 .theme-input {
-    background-color: #262626;
-    border: 1px solid rgba(255, 165, 0, 0.1);
-    color: #ffb366;
+    background-color: #333333 !important;
+    border: 1px solid #3d3d3d !important;
+    color: #e0e0e0 !important;
     padding: 12px;
     border-radius: 8px;
 }
 
+.theme-input:focus {
+    background-color: #333333 !important;
+    border-color: #ff4444 !important;
+    box-shadow: 0 0 0 0.25rem rgba(255, 68, 68, 0.25) !important;
+    color: #e0e0e0 !important;
+}
+
+.theme-input::placeholder {
+    color: #aaaaaa !important;
+}
+
 .theme-btn-primary {
-    background-color: #ff8c00;
-    border-color: #ff8c00;
+    background-color: #ff4444;
+    border-color: #ff4444;
     color: #ffffff;
 }
 
 .theme-btn-primary:hover {
-    background-color: #e67e00;
-    border-color: #e67e00;
+    background-color: #e63838;
+    border-color: #e63838;
     color: #ffffff;
 }
 
 .theme-btn-outline {
     background-color: transparent;
-    border-color: #ff8c00;
-    color: #ff8c00;
+    border-color: #ff4444;
+    color: #ff4444;
 }
 
 .theme-btn-outline:hover {
-    background-color: rgba(255, 140, 0, 0.1);
-    border-color: #ff8c00;
-    color: #ff8c00;
+    background-color: rgba(255, 68, 68, 0.1);
+    border-color: #ff4444;
+    color: #ff4444;
 }
 
 .theme-badge {
-    background-color: #ff8c00;
-    color: #2d1f1f;
+    background-color: #ff4444;
+    color: #ffffff;
     font-weight: 500;
 }
 
 .theme-pagination .page-link {
-    background-color: #2d1f1f;
-    border-color: #ff8c00;
-    color: #ff8c00;
+    background-color: #1e1e1e;
+    border-color: #333;
+    color: #ff4444;
 }
 
 .theme-pagination .page-item.active .page-link {
-    background-color: #ff8c00;
-    border-color: #ff8c00;
-    color: #2d1f1f;
+    background-color: #ff4444;
+    border-color: #ff4444;
+    color: #ffffff;
 }
 
 .prompt-content {
     font-family: 'Courier New', monospace;
     padding: 15px;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: #161616;
     border-radius: 6px;
     white-space: pre-wrap;
     color: #ffb366;
+    border: 1px solid #333;
 }
 
-.comment-card {
-    background-color: rgba(45, 31, 31, 0.7);
-    border: 1px solid rgba(255, 165, 0, 0.1);
-    border-radius: 8px;
-    margin-bottom: 1rem;
+.bg-darker {
+    background-color: #161616;
 }
 
-.reply-card {
-    background-color: rgba(25, 20, 20, 0.7);
-    border: 1px solid rgba(255, 165, 0, 0.1);
+.content-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
     border-radius: 8px;
+}
+
+.comment-item {
+    border-color: #333 !important;
+}
+
+.reply-item {
+    background-color: #161616;
 }
 
 .auth-card {
     max-width: 450px;
     margin: 0 auto;
     padding: 2rem;
+}
+
+.accent-box {
+    background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+    border: 1px solid rgba(255, 165, 0, 0.1);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.accent-box .theme-title {
+    color: #ff8c00;
+}
+
+.accent-box .prompt-content {
+    color: #ffb366;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 165, 0, 0.1);
 }
