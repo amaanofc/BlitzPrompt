@@ -181,15 +181,18 @@
         const voteCount = this.parentElement.querySelector(".vote-count");
 
         try {
-          const response = await fetch(`/vote-prompt/${promptId}/`, {
-            method: "POST",
+          const response = await fetch('/api/vote/', {
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": document.querySelector(
+              'Content-Type': 'application/json',
+              'X-CSRFToken': document.querySelector(
                 "[name=csrfmiddlewaretoken]"
               ).value,
             },
-            body: JSON.stringify({ value: value }),
+            body: JSON.stringify({
+              prompt_id: promptId,
+              value: value
+            })
           });
 
           const data = await response.json();

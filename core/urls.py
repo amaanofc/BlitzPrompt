@@ -10,7 +10,6 @@ urlpatterns = [
     path('toggle-favorite/<int:prompt_id>/', views.toggle_favorite, name='toggle_favorite'),
     path('publish-prompt/<int:prompt_id>/', views.publish_prompt, name='publish_prompt'),
     path('delete-prompt/<int:prompt_id>/', views.delete_prompt, name='delete_prompt'),
-    path('vote-prompt/<int:prompt_id>/', views.vote_prompt, name='vote_prompt'),
     path('add-comment/<int:prompt_id>/', views.add_comment, name='add_comment'),
     path('delete-comment/<int:comment_id>/', views.delete_comment, name='delete_comment'),
     path('profile/', views.profile, name='profile'),
@@ -22,4 +21,5 @@ urlpatterns = [
     path('api/conversations/', views.conversations_api, name='conversations_api'),
     path('api/conversations/<int:conversation_id>/', views.conversation_detail_api, name='conversation_detail_api'),
     path('api/rate-limits/', views.rate_limits_api, name='rate_limits_api'),
+    path('api/vote/', views.api_vote, name='api_vote'),
 ] 

@@ -13,10 +13,14 @@ import time
 from django.db import connection
 from django.db.utils import IntegrityError
 from django.db import models
+from .utils import get_trending_prompts, search_prompts, personalize_results
+from django.views.decorators.http import require_POST
+from django.db.utils import OperationalError
 
 def home(request):
-    # Get trending prompts (top 6 by votes)
-    trending_prompts = Prompt.objects.filter(published=True).order_by('-total_votes')[:6]
+    # Get trending prompts using our new algorithm
+    base_queryset = Prompt.objects.filter(published=True)
+    trending_prompts = get_trending_prompts(base_queryset)[:6]
     
     return render(request, 'core/home.html', {
         'trending_prompts': trending_prompts
@@ -36,20 +40,34 @@ def signup(request):
 def prompt_library(request):
     category = request.GET.get('category')
     search = request.GET.get('search')
-    sort = request.GET.get('sort', '-total_votes')  # Default sort by votes
+    search_type = request.GET.get('search_type', 'basic')  # Default to basic search
+    sort = request.GET.get('sort', 'trending')  # Default sort by trending
 
     prompts = Prompt.objects.filter(published=True)
     
+    # Apply category filter if specified
     if category:
         prompts = prompts.filter(categories__name=category)
-    if search:
-        prompts = prompts.filter(
-            Q(title__icontains=search) |
-            Q(description__icontains=search) |
-            Q(content__icontains=search)
-        )
     
-    prompts = prompts.order_by(sort)
+    # Apply search if provided
+    if search:
+        prompts = search_prompts(prompts, search, search_type)
+    
+    # Apply sorting
+    if sort == 'trending':
+        prompts = get_trending_prompts(prompts)
+    elif sort == '-total_votes':
+        prompts = prompts.order_by('-total_votes')
+    elif sort == '-created_at':
+        prompts = prompts.order_by('-created_at')
+    elif sort == 'created_at':
+        prompts = prompts.order_by('created_at')
+    else:
+        prompts = prompts.order_by(sort)
+    
+    # Apply personalization if enabled in the future
+    # prompts = personalize_results(prompts, request.user)
+    
     paginator = Paginator(prompts, 12)  # 12 prompts per page
     page = request.GET.get('page')
     prompts = paginator.get_page(page)
@@ -59,7 +77,9 @@ def prompt_library(request):
         'prompts': prompts,
         'categories': categories,
         'selected_category': category,
-        'search_query': search
+        'search_query': search,
+        'search_type': search_type,
+        'sort': sort
     })
 
 @login_required
@@ -204,72 +224,87 @@ def publish_prompt(request, prompt_id):
         return JsonResponse({'error': 'Prompt not found'}, status=404)
 
 @login_required
-def vote_prompt(request, prompt_id):
-    try:
-        # Ensure we have a valid prompt
-        prompt = Prompt.objects.get(id=prompt_id)
-        
-        # Get vote value from POST data, debug request content type
-        print(f"Content-Type: {request.content_type}")
-        print(f"POST data: {request.POST}")
-        
+@require_POST
+def api_vote(request):
+    """API endpoint for voting on prompts"""
+    max_retries = 3
+    retry_delay = 0.1  # seconds
+    
+    for attempt in range(max_retries):
         try:
-            # Try to get the value from POST data first (most common case)
-            value = int(request.POST.get('value', 0))
-        except (ValueError, TypeError):
-            # Fall back to JSON if POST doesn't work
-            try:
-                if request.body:
-                    data = json.loads(request.body)
-                    value = int(data.get('value', 0))
-                else:
-                    value = 0
-            except (json.JSONDecodeError, ValueError, TypeError):
-                value = 0
-        
-        # Validation
-        if value not in [-1, 0, 1]:
-            return JsonResponse({'error': f'Invalid vote value: {value}. Must be -1, 0, or 1'}, status=400)
-        
-        # Use a transaction to prevent race conditions
-        with transaction.atomic():
-            # Get or create the vote
-            if value == 0:
-                # Just delete any existing vote
-                Vote.objects.filter(user=request.user, prompt=prompt).delete()
-                current_vote = 0
-            else:
-                # Get or create vote with proper value
-                vote, created = Vote.objects.get_or_create(
-                    user=request.user,
-                    prompt=prompt,
-                    defaults={'value': value}
-                )
-                
-                # If vote exists but value changed, update it
-                if not created and vote.value != value:
-                    vote.value = value
-                    vote.save()
-                
-                current_vote = value
-                    
-            # Update the total vote count on the prompt
-            prompt.update_vote_count()
+            data = json.loads(request.body)
+            prompt_id = data.get('prompt_id')
+            value = data.get('value')
             
-        # Return the updated values
-        response_data = {
-            'total_votes': prompt.total_votes,
-            'user_vote': current_vote,
-            'success': True
-        }
-        print(f"Response data: {response_data}")
-        return JsonResponse(response_data)
-    except Prompt.DoesNotExist:
-        return JsonResponse({'error': 'Prompt not found', 'success': False}, status=404)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'error': f'Server error: {str(e)}', 'success': False}, status=500)
+            if not prompt_id or value not in [-1, 0, 1]:
+                return JsonResponse({'success': False, 'error': 'Invalid data'})
+            
+            with transaction.atomic():
+                # Get prompt without locking for initial validation
+                prompt = get_object_or_404(Prompt, id=prompt_id)
+                
+                # Check if user has already voted - without locking
+                current_vote = None
+                try:
+                    current_vote = Vote.objects.get(user=request.user, prompt=prompt)
+                except Vote.DoesNotExist:
+                    pass
+                
+                # Handle the vote operation
+                if current_vote:
+                    if value == 0:
+                        # Remove vote if value is 0
+                        current_vote.delete()
+                    else:
+                        # Update existing vote
+                        current_vote.value = value
+                        current_vote.save()
+                elif value != 0:  # Don't create a new vote with value 0
+                    # Create new vote
+                    Vote.objects.create(user=request.user, prompt=prompt, value=value)
+                
+                # Update prompt's vote count without locking the entire table
+                prompt.update_vote_count()
+                
+                # Get user's current vote if any
+                try:
+                    user_vote = Vote.objects.get(user=request.user, prompt=prompt).value
+                except Vote.DoesNotExist:
+                    user_vote = 0
+                
+                return JsonResponse({
+                    'success': True,
+                    'total_votes': prompt.total_votes,
+                    'user_vote': user_vote
+                })
+        
+        except OperationalError as e:
+            # Check if it's a database lock error
+            if "database is locked" in str(e) and attempt < max_retries - 1:
+                # Wait a bit before retrying
+                time.sleep(retry_delay * (2 ** attempt))  # Exponential backoff
+                continue
+            # On the last attempt, re-raise the exception
+            raise
+                
+        except IntegrityError:
+            # Handle duplicate voting attempts gracefully
+            try:
+                prompt = get_object_or_404(Prompt, id=prompt_id)
+                try:
+                    user_vote = Vote.objects.get(user=request.user, prompt=prompt).value
+                except Vote.DoesNotExist:
+                    user_vote = 0
+                    
+                return JsonResponse({
+                    'success': True,
+                    'total_votes': prompt.total_votes,
+                    'user_vote': user_vote
+                })
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': 'An unexpected error occurred'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
 @transaction.atomic

@@ -382,14 +382,17 @@
         const formData = new FormData();
         formData.append("value", voteValue);
 
-        // Important: Do NOT set Content-Type header when using FormData
-        // Let the browser set it automatically with proper boundary
-        fetch(`/vote-prompt/${promptId}/`, {
-          method: "POST",
+        // Send the request using JSON format
+        fetch('/api/vote/', {
+          method: 'POST',
           headers: {
-            "X-CSRFToken": csrfToken,
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
           },
-          body: formData,
+          body: JSON.stringify({
+            prompt_id: promptId,
+            value: voteValue
+          })
         })
           .then((response) => {
             if (!response.ok) {

@@ -896,6 +896,20 @@
       });
     }
 
+    // Check URL parameters for prompt_id and auto-select it
+    function checkForPromptInUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const promptId = urlParams.get('prompt_id');
+      
+      if (promptId) {
+        // Auto-select the prompt
+        selectPrompt(promptId);
+      }
+    }
+    
+    // Call this function when the page loads
+    checkForPromptInUrl();
+
     // Save prompt from quick create form
     savePromptBtn.addEventListener("click", function () {
       const formData = new FormData(quickPromptForm);
@@ -1228,7 +1242,9 @@
       togglePromptsSidebar
         .querySelector("i")
         .classList.remove("fa-chevron-right");
-      togglePromptsSidebar.querySelector("i").classList.add("fa-chevron-left");
+      togglePromptsSidebar
+        .querySelector("i")
+        .classList.add("fa-chevron-left");
     }
 
     // Handle window resize

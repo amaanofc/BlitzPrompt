@@ -1,4 +1,8 @@
-{% extends 'core/base.html' %} {% load static %} {% block content %}
+{% extends 'core/base.html' %} {% load static %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+{% endblock %}
+
+{% block content %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -45,32 +49,52 @@ ${userCode}`;</code></pre>
     </section>
 
     <!-- Trending Prompts -->
-    <section class="trending-section py-5 bg-darker">
+    <section class="trending-section py-5" style="background-color: #1e1e1e;">
       <div class="container">
         <h2 class="text-center mb-5">Trending Prompts</h2>
+        <!-- Add CSRF token for vote functionality -->
+        {% csrf_token %}
         <div class="row">
           {% for prompt in trending_prompts %}
           <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow" style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.3);">
-              <div class="card-body">
-                <h5 class="card-title" style="color: #ff8c00;">{{ prompt.title }}</h5>
+            <div class="card h-100 prompt-card">
+              <div class="card-body p-4">
+                <h5 class="theme-title mb-2">{{ prompt.title }}</h5>
                 <div class="mb-2">
                   {% for category in prompt.categories.all %}
                   <span class="badge bg-secondary me-1">{{ category.name }}</span>
                   {% endfor %}
                 </div>
-                <p class="card-text" style="color: #ffb366;">{{ prompt.description|truncatechars:100 }}</p>
-              </div>
-              <div class="card-footer" style="border-top: 1px solid rgba(255, 165, 0, 0.3);">
-                <small style="color: #ffb366;">
-                  {{ prompt.total_votes }} votes • {{ prompt.created_at|timesince }} ago
-                </small>
+                <p class="theme-text mb-3">{{ prompt.description|truncatechars:100 }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <a href="{% url 'interface' %}?prompt_id={{ prompt.id }}" class="btn btn-sm theme-btn-primary me-1" data-bs-toggle="tooltip" title="Use this prompt in chat">
+                      <i class="fas fa-comments me-1"></i> Use
+                    </a>
+                    <a href="{% url 'prompt_detail' prompt.id %}" class="btn btn-sm theme-btn-outline" data-bs-toggle="tooltip" title="View prompt details">
+                      <i class="fas fa-eye me-1"></i> Details
+                    </a>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-primary vote-btn {% if user_votes.prompt.id == 1 %}active{% endif %}" 
+                            data-prompt-id="{{ prompt.id }}" 
+                            data-value="1">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
+                    <button class="btn btn-sm btn-outline-danger vote-btn {% if user_votes.prompt.id == -1 %}active{% endif %}" 
+                            data-prompt-id="{{ prompt.id }}" 
+                            data-value="-1">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           {% empty %}
           <div class="col-12">
-            <p class="text-center text-muted">
+            <p class="text-center" style="color: #ff4444;">
               No trending prompts yet. Be the first to create one!
             </p>
           </div>
@@ -189,6 +213,13 @@ ${userCode}`;</code></pre>
     {% endblock %} {% block extra_js %}
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Vote functionality
         const voteButtons = document.querySelectorAll(".vote-btn");
 
         voteButtons.forEach((button) => {
@@ -198,15 +229,18 @@ ${userCode}`;</code></pre>
             const voteCount = this.parentElement.querySelector(".vote-count");
 
             try {
-              const response = await fetch(`/vote-prompt/${promptId}/`, {
-                method: "POST",
+              const response = await fetch('/api/vote/', {
+                method: 'POST',
                 headers: {
-                  "Content-Type": "application/json",
-                  "X-CSRFToken": document.querySelector(
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': document.querySelector(
                     "[name=csrfmiddlewaretoken]"
                   ).value,
                 },
-                body: JSON.stringify({ value: value }),
+                body: JSON.stringify({
+                  prompt_id: promptId,
+                  value: value
+                })
               });
 
               const data = await response.json();

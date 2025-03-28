@@ -20,27 +20,41 @@
                         <input type="text" name="search" class="form-control me-2 bg-dark text-light border-0 theme-input" 
                                placeholder="Search prompts..." 
                                value="{{ search_query }}">
+                        <select name="search_type" class="form-select me-2 bg-dark text-light border-0 theme-input" style="width: auto;">
+                            <option value="basic" {% if search_type == 'basic' %}selected{% endif %}>All Fields</option>
+                            <option value="tag" {% if search_type == 'tag' %}selected{% endif %}>By Category</option>
+                        </select>
                         <button type="submit" class="btn theme-btn-primary px-4">
                             <i class="fas fa-search"></i>
                         </button>
                     </form>
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select bg-dark text-light border-0 theme-input" 
-                            onchange="window.location.href=this.value">
-                        <option value="{% url 'prompt_library' %}" {% if not selected_category %}selected{% endif %}>All Categories</option>
-                        {% for category in categories %}
-                        <option value="{% url 'prompt_library' %}?category={{ category.name }}" 
-                                {% if selected_category == category.name %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div class="d-flex">
+                        <select name="category" class="form-select me-2 bg-dark text-light border-0 theme-input" 
+                                onchange="updateFilters('category', this.value)">
+                            <option value="" {% if not selected_category %}selected{% endif %}>All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.name }}" 
+                                    {% if selected_category == category.name %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <select name="sort" class="form-select bg-dark text-light border-0 theme-input"
+                                onchange="updateFilters('sort', this.value)">
+                            <option value="trending" {% if sort == 'trending' %}selected{% endif %}>Trending</option>
+                            <option value="-total_votes" {% if sort == '-total_votes' %}selected{% endif %}>Most Votes</option>
+                            <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Newest</option>
+                            <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>Oldest</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Prompts Grid -->
     <div class="row g-4">
         {% for prompt in prompts %}
         <div class="col-md-4 col-lg-3">
@@ -89,7 +103,7 @@
             {% if prompts.has_previous %}
             <li class="page-item">
                 <a class="page-link" 
-                   href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                   href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if search_type %}&search_type={{ search_type }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
                     <i class="fas fa-chevron-left"></i> Previous
                 </a>
             </li>
@@ -98,7 +112,7 @@
             {% for num in prompts.paginator.page_range %}
             <li class="page-item {% if prompts.number == num %}active{% endif %}">
                 <a class="page-link" 
-                   href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                   href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if search_type %}&search_type={{ search_type }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
                     {{ num }}
                 </a>
             </li>
@@ -107,7 +121,7 @@
             {% if prompts.has_next %}
             <li class="page-item">
                 <a class="page-link" 
-                   href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                   href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if search_type %}&search_type={{ search_type }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
                     Next <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -119,82 +133,82 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const voteButtons = document.querySelectorAll('.vote-btn');
-    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-    
-    voteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const promptId = this.dataset.promptId;
-            const value = parseInt(this.dataset.value);
-            const voteCount = this.parentElement.querySelector('.vote-count');
-            const upButton = this.parentElement.querySelector('[data-value="1"]');
-            const downButton = this.parentElement.querySelector('[data-value="-1"]');
-            
-            // Visual feedback - show loading state
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            
-            // Check if the button is already active (user already voted this way)
-            const isActive = this.classList.contains('active');
-            // If clicking an active button, send 0 (remove vote), otherwise send the button's value
-            const voteValue = isActive ? 0 : value;
-            
-            // Create FormData for the request
-            const formData = new FormData();
-            formData.append('value', voteValue);
-            
-            fetch(`/vote-prompt/${promptId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken
-                },
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Update the vote count
-                voteCount.textContent = data.total_votes;
+    function updateFilters(param, value) {
+        // Get current URL and parameters
+        const url = new URL(window.location.href);
+        const params = new URLSearchParams(url.search);
+        
+        // Update or add the parameter
+        if (value) {
+            params.set(param, value);
+        } else {
+            params.delete(param);
+        }
+        
+        // Reset to page 1 when filters change
+        params.delete('page');
+        
+        // Redirect to the new URL
+        window.location.href = window.location.pathname + '?' + params.toString();
+    }
+
+    // Vote functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const voteButtons = document.querySelectorAll('.vote-btn');
+        
+        voteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const promptId = this.dataset.promptId;
+                const buttonValue = parseInt(this.dataset.value);
+                const voteCountElement = this.parentElement.querySelector('.vote-count');
+                const isActive = this.classList.contains('active');
                 
-                // Reset active states on both buttons
-                upButton.classList.remove('active');
-                downButton.classList.remove('active');
+                // If button is already active, send 0 to cancel the vote
+                const value = isActive ? 0 : buttonValue;
                 
-                // Set active state based on server response
-                if (data.user_vote === 1) {
-                    upButton.classList.add('active');
-                } else if (data.user_vote === -1) {
-                    downButton.classList.add('active');
-                }
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 
-                // Reset button state to correct icon
-                if (value === 1) {
-                    this.innerHTML = '<i class="fas fa-arrow-up"></i>';
-                } else {
-                    this.innerHTML = '<i class="fas fa-arrow-down"></i>';
-                }
-                this.disabled = false;
-            })
-            .catch(error => {
-                console.error('Error voting:', error);
-                
-                // Reset button state to correct icon without showing error alert
-                if (value === 1) {
-                    this.innerHTML = '<i class="fas fa-arrow-up"></i>';
-                } else {
-                    this.innerHTML = '<i class="fas fa-arrow-down"></i>';
-                }
-                this.disabled = false;
+                fetch('/api/vote/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        prompt_id: promptId,
+                        value: value
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update vote count
+                        voteCountElement.textContent = data.total_votes;
+                        
+                        // Toggle active class on buttons
+                        const upButton = this.parentElement.querySelector('[data-value="1"]');
+                        const downButton = this.parentElement.querySelector('[data-value="-1"]');
+                        
+                        upButton.classList.remove('active');
+                        downButton.classList.remove('active');
+                        
+                        if (data.user_vote === 1) {
+                            upButton.classList.add('active');
+                        } else if (data.user_vote === -1) {
+                            downButton.classList.add('active');
+                        }
+                    } else {
+                        alert(data.error || 'Could not vote. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
             });
         });
     });
-});
 </script>
-{% endblock extra_js %}
-{% endblock content %}
+{% endblock %}
+{% endblock %}
