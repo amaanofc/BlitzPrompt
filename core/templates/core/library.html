@@ -2,94 +2,85 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Add a hidden form field with CSRF token -->
-    {% csrf_token %}
-    
-    <!-- Search and Filter Section -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <form method="get" class="d-flex">
-                <input type="text" name="search" class="form-control me-2" placeholder="Search prompts..." value="{{ search_query }}">
-                <button type="submit" class="btn btn-primary">Search</button>
-            </form>
+<div class="container-fluid bg-beige py-5">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="display-4 text-copper">Prompt Library</h1>
+                <!-- Add a hidden form field with CSRF token -->
+                {% csrf_token %}
+                
+                <!-- Search and Filter Section -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <form method="get" class="d-flex">
+                            <input type="text" name="search" class="form-control me-2" placeholder="Search prompts..." value="{{ search_query }}">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" onchange="window.location.href=this.value">
+                            <option value="{% url 'prompt_library' %}" {% if not selected_category %}selected{% endif %}>All Categories</option>
+                            {% for category in categories %}
+                            <option value="{% url 'prompt_library' %}?category={{ category.name }}" {% if selected_category == category.name %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-4">
-            <select class="form-select" onchange="window.location.href=this.value">
-                <option value="{% url 'prompt_library' %}" {% if not selected_category %}selected{% endif %}>All Categories</option>
-                {% for category in categories %}
-                <option value="{% url 'prompt_library' %}?category={{ category.name }}" {% if selected_category == category.name %}selected{% endif %}>
-                    {{ category.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
 
-    <!-- Prompts Grid -->
-    <div class="row">
-        {% for prompt in prompts %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ prompt.title }}</h5>
-                    <p class="card-text text-muted">{{ prompt.description|truncatewords:30 }}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary vote-btn" data-prompt-id="{{ prompt.id }}" data-value="1">
-                                <i class="fas fa-arrow-up"></i>
-                            </button>
-                            <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
-                            <button class="btn btn-sm btn-outline-danger vote-btn" data-prompt-id="{{ prompt.id }}" data-value="-1">
-                                <i class="fas fa-arrow-down"></i>
-                            </button>
+        <div class="row g-4">
+            {% for prompt in prompts %}
+            <div class="col-md-4 col-lg-3">
+                <div class="card h-100 shadow-sm bg-eggshell">
+                    <div class="card-body">
+                        <h5 class="card-title text-copper">{{ prompt.title }}</h5>
+                        <p class="card-text text-mocha">{{ prompt.description|truncatechars:100 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'prompt_detail' prompt.id %}" 
+                               class="btn btn-terracotta btn-sm">View Prompt</a>
+                            <small class="text-mocha">{{ prompt.total_votes }} votes</small>
                         </div>
-                        <small class="text-muted">{{ prompt.total_comments }} comments</small>
-                    </div>
-                    <div class="mt-2">
-                        {% for category in prompt.categories.all %}
-                        <span class="badge bg-secondary me-1">{{ category.name }}</span>
-                        {% endfor %}
                     </div>
                 </div>
-                <div class="card-footer">
-                    <a href="{% url 'prompt_detail' prompt.id %}" class="btn btn-primary btn-sm w-100">View Details</a>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No prompts found. {% if search_query %}Try a different search term.{% else %}Be the first to create a prompt!{% endif %}
                 </div>
             </div>
-        </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="alert alert-info">
-                No prompts found. {% if search_query %}Try a different search term.{% else %}Be the first to create a prompt!{% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Pagination -->
-    {% if prompts.has_other_pages %}
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if prompts.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Previous</a>
-            </li>
-            {% endif %}
-            
-            {% for num in prompts.paginator.page_range %}
-            <li class="page-item {% if prompts.number == num %}active{% endif %}">
-                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">{{ num }}</a>
-            </li>
             {% endfor %}
-            
-            {% if prompts.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Next</a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+        </div>
+
+        <!-- Pagination -->
+        {% if prompts.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if prompts.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in prompts.paginator.page_range %}
+                <li class="page-item {% if prompts.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                
+                {% if prompts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
 </div>
 
 {% block extra_js %}

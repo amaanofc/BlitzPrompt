@@ -321,10 +321,13 @@ def profile(request):
     user_prompts = Prompt.objects.filter(author=request.user)
     favorite_prompts = request.user.favorites.all()
     
-    return render(request, 'core/profile.html', {
+    context = {
         'user_prompts': user_prompts,
+        'published_count': user_prompts.filter(published=True).count(),
+        'draft_count': user_prompts.filter(published=False).count(),
         'favorite_prompts': favorite_prompts
-    })
+    }
+    return render(request, 'core/profile.html', context)
 
 @login_required
 def favorites(request):
