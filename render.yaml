@@ -3,10 +3,12 @@ services:
     name: blitzprompt
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn core.wsgi:application"
+    startCommand: "gunicorn BlitzPrompt.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PYTHONPATH
+        value: "/opt/render/project/src"
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
