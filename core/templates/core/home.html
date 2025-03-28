@@ -29,9 +29,6 @@
                 <i class="fas fa-book me-2"></i>Browse Library
               </a>
             </div>
-            <div class="alert alert-light mt-3">
-              <i class="fas fa-info-circle me-2"></i> You can access the chat interface directly at <strong><a href="{% url 'interface' %}">{% url 'interface' %}</a></strong>
-            </div>
           </div>
           <div class="col-lg-6">
             <div class="card p-4">
@@ -54,50 +51,20 @@ ${userCode}`;</code></pre>
         <div class="row">
           {% for prompt in trending_prompts %}
           <div class="col-md-4 mb-4">
-            <div class="card h-100">
+            <div class="card h-100 shadow" style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.3);">
               <div class="card-body">
-                <h5 class="card-title">{{ prompt.title }}</h5>
-                <p class="card-text text-muted">
-                  {{ prompt.description|truncatewords:30 }}
-                </p>
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="btn-group">
-                    <button
-                      class="btn btn-sm btn-outline-primary vote-btn"
-                      data-prompt-id="{{ prompt.id }}"
-                      data-value="1"
-                    >
-                      <i class="fas fa-arrow-up"></i>
-                    </button>
-                    <span class="mx-2 vote-count"
-                      >{{ prompt.total_votes }}</span
-                    >
-                    <button
-                      class="btn btn-sm btn-outline-danger vote-btn"
-                      data-prompt-id="{{ prompt.id }}"
-                      data-value="-1"
-                    >
-                      <i class="fas fa-arrow-down"></i>
-                    </button>
-                  </div>
-                  <small class="text-muted"
-                    >{{ prompt.total_comments }} comments</small
-                  >
-                </div>
-                <div class="mt-2">
+                <h5 class="card-title" style="color: #ff8c00;">{{ prompt.title }}</h5>
+                <div class="mb-2">
                   {% for category in prompt.categories.all %}
-                  <span class="badge bg-secondary me-1"
-                    >{{ category.name }}</span
-                  >
+                  <span class="badge bg-secondary me-1">{{ category.name }}</span>
                   {% endfor %}
                 </div>
+                <p class="card-text" style="color: #ffb366;">{{ prompt.description|truncatechars:100 }}</p>
               </div>
-              <div class="card-footer">
-                <a
-                  href="{% url 'prompt_detail' prompt.id %}"
-                  class="btn btn-primary btn-sm w-100"
-                  >View Details</a
-                >
+              <div class="card-footer" style="border-top: 1px solid rgba(255, 165, 0, 0.3);">
+                <small style="color: #ffb366;">
+                  {{ prompt.total_votes }} votes • {{ prompt.created_at|timesince }} ago
+                </small>
               </div>
             </div>
           </div>

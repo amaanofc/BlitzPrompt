@@ -67,15 +67,28 @@
       }
 
       .card {
-        background-color: var(--card-bg);
-        border: 1px solid rgba(255, 0, 0, 0.1);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: #1a1a1a;
+        border: 1px solid #2d2d2d;
+        transition: transform 0.2s;
       }
 
       .card-body {
         background-color: #2a2a2a;
         color: var(--text-color);
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card-title {
+        color: #f8f9fa;
+        font-weight: 600;
+      }
+
+      .card-footer {
+        background: #1a1a1a !important;
+        border-top: 1px solid #2d2d2d !important;
       }
 
       /* How It Works section cards */
@@ -152,11 +165,6 @@
       .how-it-works .text-muted,
       .quick-access .text-muted {
         color: #ffb366 !important;
-      }
-
-      .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 12px rgba(255, 0, 0, 0.1);
       }
 
       .btn-primary {
@@ -343,6 +351,43 @@
         body {
           padding-bottom: 50px;
         }
+      }
+
+      /* Add this to your existing styles */
+      .trending-section .card {
+        background: linear-gradient(145deg, #2d1f1f, #3d2f2f) !important;
+        border: 1px solid rgba(255, 165, 0, 0.3) !important;
+        box-shadow: 0 4px 15px rgba(255, 165, 0, 0.1);
+      }
+
+      .trending-section .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 20px rgba(255, 165, 0, 0.2);
+        border-color: rgba(255, 165, 0, 0.5);
+      }
+
+      .trending-section .card-title {
+        color: #ff8c00 !important;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+      }
+
+      .trending-section .card-text {
+        color: #ffb366 !important;
+        font-family: 'Inter', sans-serif;
+        line-height: 1.6;
+      }
+
+      .trending-section .card-footer small {
+        color: #ffb366 !important;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+      }
+
+      .trending-section .badge {
+        background-color: #ff8c00;
+        color: #2d1f1f;
+        font-weight: 500;
       }
     </style>
   </head>
