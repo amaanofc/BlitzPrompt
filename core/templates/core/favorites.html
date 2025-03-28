@@ -1,9 +1,9 @@
-{% extends 'base.html' %} {% load static %} {% block content %}
+{% extends 'core/base.html' %} {% load static %} {% block content %}
 <div class="container py-5">
   <div class="row mb-4">
     <div class="col-12">
       <h2>Your Favorite Prompts</h2>
-      <p class="text-muted">
+      <p style="color: #ffb366">
         Access your saved prompts and start using them with DeepSeek
       </p>
     </div>
@@ -12,10 +12,16 @@
   <div class="row">
     {% for prompt in favorite_prompts %}
     <div class="col-md-4 mb-4">
-      <div class="card h-100">
+      <div
+        class="card h-100"
+        style="
+          background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+          border: 1px solid rgba(255, 165, 0, 0.3);
+        "
+      >
         <div class="card-body">
-          <h5 class="card-title">{{ prompt.title }}</h5>
-          <p class="card-text text-muted">
+          <h5 class="card-title" style="color: #ff8c00">{{ prompt.title }}</h5>
+          <p class="card-text" style="color: #ffb366">
             {{ prompt.description|truncatewords:30 }}
           </p>
           <div class="d-flex justify-content-between align-items-center">
@@ -36,7 +42,7 @@
                 <i class="fas fa-arrow-down"></i>
               </button>
             </div>
-            <small class="text-muted"
+            <small style="color: #ffb366"
               >{{ prompt.total_comments }} comments</small
             >
           </div>
@@ -46,7 +52,13 @@
             {% endfor %}
           </div>
         </div>
-        <div class="card-footer">
+        <div
+          class="card-footer"
+          style="
+            border-top: 1px solid rgba(255, 165, 0, 0.3);
+            background: transparent;
+          "
+        >
           <div class="d-flex justify-content-between">
             <a
               href="{% url 'prompt_detail' prompt.id %}"
