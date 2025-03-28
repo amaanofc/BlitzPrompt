@@ -5,3 +5,125 @@
 .prompt-card:hover {
     transform: translateY(-5px);
 }
+
+/* Vote button styling */
+.vote-btn {
+    transition: all 0.2s;
+    padding: 0.25rem 0.5rem;
+}
+
+.vote-btn:hover {
+    transform: translateY(-2px);
+}
+
+.vote-btn.active {
+    background-color: #ff4444 !important;
+    color: white !important;
+    border-color: #ff4444 !important;
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+.vote-count {
+    font-weight: 500;
+    color: #ffb366;
+}
+
+/* Modern theme styles */
+.theme-card {
+    background: linear-gradient(145deg, #2d1f1f, #3d2f2f);
+    border: 1px solid rgba(255, 165, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.theme-title {
+    color: #ff8c00;
+    font-weight: 600;
+}
+
+.theme-text {
+    color: #ffb366;
+    line-height: 1.6;
+}
+
+.theme-muted {
+    color: #c4c4c4;
+}
+
+.theme-input {
+    background-color: #262626;
+    border: 1px solid rgba(255, 165, 0, 0.1);
+    color: #ffb366;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.theme-btn-primary {
+    background-color: #ff8c00;
+    border-color: #ff8c00;
+    color: #ffffff;
+}
+
+.theme-btn-primary:hover {
+    background-color: #e67e00;
+    border-color: #e67e00;
+    color: #ffffff;
+}
+
+.theme-btn-outline {
+    background-color: transparent;
+    border-color: #ff8c00;
+    color: #ff8c00;
+}
+
+.theme-btn-outline:hover {
+    background-color: rgba(255, 140, 0, 0.1);
+    border-color: #ff8c00;
+    color: #ff8c00;
+}
+
+.theme-badge {
+    background-color: #ff8c00;
+    color: #2d1f1f;
+    font-weight: 500;
+}
+
+.theme-pagination .page-link {
+    background-color: #2d1f1f;
+    border-color: #ff8c00;
+    color: #ff8c00;
+}
+
+.theme-pagination .page-item.active .page-link {
+    background-color: #ff8c00;
+    border-color: #ff8c00;
+    color: #2d1f1f;
+}
+
+.prompt-content {
+    font-family: 'Courier New', monospace;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    white-space: pre-wrap;
+    color: #ffb366;
+}
+
+.comment-card {
+    background-color: rgba(45, 31, 31, 0.7);
+    border: 1px solid rgba(255, 165, 0, 0.1);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.reply-card {
+    background-color: rgba(25, 20, 20, 0.7);
+    border: 1px solid rgba(255, 165, 0, 0.1);
+    border-radius: 8px;
+}
+
+.auth-card {
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 2rem;
+}

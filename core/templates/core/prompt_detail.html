@@ -1,21 +1,21 @@
-{% extends 'base.html' %} {% load static %} {% block content %}
-<div class="container mt-4">
+{% extends 'core/base.html' %} {% load static %} {% block content %}
+<div class="container py-5">
   <!-- Prompt Card -->
-  <div class="card mb-4">
-    <div class="card-body">
+  <div class="card shadow-lg border-0 mb-5" style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.1);">
+    <div class="card-body p-4 p-lg-5">
       <div class="d-flex justify-content-between align-items-start">
-        <h1 class="card-title">{{ prompt.title }}</h1>
+        <h1 class="card-title" style="color: #ff8c00; font-weight: 600;">{{ prompt.title }}</h1>
         <div class="btn-group">
           <button
-            class="btn btn-sm btn-outline-primary vote-btn {% if user_vote == 1 %}active{% endif %}"
+            class="btn btn-outline-primary vote-btn {% if user_vote == 1 %}active{% endif %}"
             data-prompt-id="{{ prompt.id }}"
             data-value="1"
           >
             <i class="fas fa-arrow-up"></i>
           </button>
-          <span class="mx-2 vote-count">{{ prompt.total_votes }}</span>
+          <span class="mx-2 vote-count" style="color: #ffb366; font-weight: 500; align-self: center;">{{ prompt.total_votes }}</span>
           <button
-            class="btn btn-sm btn-outline-danger vote-btn {% if user_vote == -1 %}active{% endif %}"
+            class="btn btn-outline-danger vote-btn {% if user_vote == -1 %}active{% endif %}"
             data-prompt-id="{{ prompt.id }}"
             data-value="-1"
           >
@@ -24,35 +24,35 @@
         </div>
       </div>
 
-      <div class="mt-2 mb-3">
+      <div class="mt-3 mb-4">
         {% for category in prompt.categories.all %}
-        <span class="badge bg-secondary me-1">{{ category.name }}</span>
+        <span class="badge bg-secondary me-1" style="background-color: #ff8c00 !important; color: #2d1f1f; font-weight: 500;">{{ category.name }}</span>
         {% endfor %}
       </div>
 
-      <div class="card bg-light mb-3">
-        <div class="card-body">
-          <h5 class="card-subtitle mb-2 text-muted">Prompt</h5>
-          <p class="card-text">{{ prompt.content }}</p>
+      <div class="card mb-4" style="background-color: rgba(45, 31, 31, 0.7); border: 1px solid rgba(255, 165, 0, 0.1); border-radius: 8px;">
+        <div class="card-body p-4">
+          <h5 class="card-subtitle mb-3" style="color: #ff8c00; font-weight: 600;">Prompt</h5>
+          <p class="card-text" style="color: #ffb366; font-family: 'Courier New', monospace; padding: 15px; background-color: rgba(0, 0, 0, 0.2); border-radius: 6px; white-space: pre-wrap;">{{ prompt.content }}</p>
         </div>
       </div>
 
-      <div class="card bg-light mb-3">
-        <div class="card-body">
-          <h5 class="card-subtitle mb-2 text-muted">Description</h5>
-          <p class="card-text">{{ prompt.description }}</p>
+      <div class="card mb-4" style="background-color: rgba(45, 31, 31, 0.7); border: 1px solid rgba(255, 165, 0, 0.1); border-radius: 8px;">
+        <div class="card-body p-4">
+          <h5 class="card-subtitle mb-3" style="color: #ff8c00; font-weight: 600;">Description</h5>
+          <p class="card-text" style="color: #ffb366; line-height: 1.6;">{{ prompt.description }}</p>
         </div>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center">
-        <small class="text-muted">
-          Posted by {{ prompt.author.username }} on {{ prompt.created_at|date:"F
-          j, Y" }}
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <small style="color: #c4c4c4;">
+          Posted by <span style="color: #ffb366;">{{ prompt.author.username }}</span> on {{ prompt.created_at|date:"F j, Y" }}
         </small>
         <div>
           <button
-            class="btn btn-sm {% if is_favorited %}btn-warning{% else %}btn-outline-warning{% endif %} favorite-btn"
+            class="btn {% if is_favorited %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 favorite-btn"
             data-prompt-id="{{ prompt.id }}"
+            style="border-color: #ff8c00; {% if is_favorited %}background-color: #ff8c00;{% endif %}"
           >
             {% if is_favorited %}
             <i class="fas fa-star"></i> Unfavorite {% else %}
@@ -60,9 +60,10 @@
           </button>
           <a
             href="{% url 'interface' %}?prompt_id={{ prompt.id }}"
-            class="btn btn-sm btn-primary"
+            class="btn btn-primary"
+            style="background-color: #ff8c00; border-color: #ff8c00;"
           >
-            Use This Prompt
+            <i class="fas fa-robot me-1"></i> Use This Prompt
           </a>
         </div>
       </div>
@@ -70,84 +71,85 @@
   </div>
 
   <!-- Comments Section -->
-  <div class="card">
-    <div class="card-body">
-      <h3 class="card-title">Comments</h3>
+  <div class="card shadow-lg border-0" style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.1);">
+    <div class="card-body p-4 p-lg-5">
+      <h3 class="card-title mb-4" style="color: #ff8c00; font-weight: 600;">Comments</h3>
 
       <!-- Comment Form -->
-      <form id="comment-form" class="mb-4">
+      <form id="comment-form" class="mb-5">
         {% csrf_token %}
         <div class="mb-3">
           <textarea
-            class="form-control"
+            class="form-control bg-dark text-light border-0"
             id="comment-content"
             rows="3"
             placeholder="Write a comment..."
+            style="padding: 15px; border-radius: 8px; resize: none;"
           ></textarea>
         </div>
-        <button type="submit" class="btn btn-primary">Post Comment</button>
+        <button type="submit" class="btn btn-primary" style="background-color: #ff8c00; border-color: #ff8c00; padding: 8px 20px;">Post Comment</button>
       </form>
 
       <!-- Comments List -->
       <div id="comments-list">
         {% for comment in comments %}
-        <div class="card mb-3 comment-card" data-comment-id="{{ comment.id }}">
-          <div class="card-body">
+        <div class="card mb-4 comment-card" data-comment-id="{{ comment.id }}" style="background-color: rgba(45, 31, 31, 0.7); border: 1px solid rgba(255, 165, 0, 0.1); border-radius: 8px;">
+          <div class="card-body p-4">
             <div class="d-flex justify-content-between">
-              <h6 class="card-subtitle mb-2 text-muted">
+              <h6 class="card-subtitle mb-2" style="color: #ff8c00; font-weight: 500;">
                 {{ comment.author.username }}
               </h6>
-              <small class="text-muted"
-                >{{ comment.created_at|date:"F j, Y, g:i a" }}</small
-              >
+              <small style="color: #c4c4c4;">{{ comment.created_at|date:"F j, Y, g:i a" }}</small>
             </div>
-            <p class="card-text">{{ comment.content }}</p>
+            <p class="card-text mt-3" style="color: #ffb366;">{{ comment.content }}</p>
 
-            <div class="d-flex">
+            <div class="d-flex mt-3">
               <!-- Reply Button -->
               <button
-                class="btn btn-sm btn-link reply-btn"
+                class="btn btn-sm reply-btn"
                 data-comment-id="{{ comment.id }}"
+                style="color: #ff8c00; padding: 0; background: none; border: none;"
               >
-                Reply
+                <i class="fas fa-reply me-1"></i> Reply
               </button>
 
               <!-- Delete Button (only shown to comment author) -->
               {% if user == comment.author %}
               <button
-                class="btn btn-sm btn-link text-danger delete-comment-btn"
+                class="btn btn-sm ms-3 delete-comment-btn"
                 data-comment-id="{{ comment.id }}"
+                style="color: #ff4444; padding: 0; background: none; border: none;"
               >
-                Delete
+                <i class="fas fa-trash-alt me-1"></i> Delete
               </button>
               {% endif %}
             </div>
 
             <!-- Replies -->
-            <div class="replies ms-4">
+            <div class="replies ms-4 mt-3">
               {% for reply in comment.replies.all %}
               <div
-                class="card mt-2 reply-card"
+                class="card mt-3 reply-card"
                 data-comment-id="{{ reply.id }}"
+                style="background-color: rgba(25, 20, 20, 0.7); border: 1px solid rgba(255, 165, 0, 0.1); border-radius: 8px;"
               >
-                <div class="card-body">
+                <div class="card-body p-3">
                   <div class="d-flex justify-content-between">
-                    <h6 class="card-subtitle mb-2 text-muted">
+                    <h6 class="card-subtitle mb-2" style="color: #ff8c00; font-weight: 500;">
                       {{ reply.author.username }}
                     </h6>
-                    <small class="text-muted"
-                      >{{ reply.created_at|date:"F j, Y, g:i a" }}</small
-                    >
+                    <small style="color: #c4c4c4;">{{ reply.created_at|date:"F j, Y, g:i a" }}</small>
                   </div>
-                  <p class="card-text">{{ reply.content }}</p>
+                  <p class="card-text mt-2" style="color: #ffb366;">{{ reply.content }}</p>
 
                   <!-- Delete Reply Button (only shown to reply author) -->
                   {% if user == reply.author %}
                   <button
-                    class="btn btn-sm btn-link text-danger delete-comment-btn"
+                    class="btn btn-sm mt-2 delete-comment-btn"
                     data-comment-id="{{ reply.id }}"
+                    style="color: #ff4444; padding: 0; background: none; border: none;"
                   >
-                    Delete
+                    <i class="fas fa-trash-alt me-1"></i> Delete
                   </button>
                   {% endif %}
                 </div>
@@ -157,7 +159,10 @@
           </div>
         </div>
         {% empty %}
-        <p class="text-muted">No comments yet. Be the first to comment!</p>
+        <div class="text-center py-4">
+          <i class="far fa-comment-dots fa-3x mb-3" style="color: #ff8c00; opacity: 0.5;"></i>
+          <p style="color: #ffb366; font-size: 1.1rem;">No comments yet. Be the first to comment!</p>
+        </div>
         {% endfor %}
       </div>
     </div>
@@ -169,6 +174,9 @@
   (function initCommentSystem() {
     if (window.commentSystemInitialized) return;
     window.commentSystemInitialized = true;
+
+    // Get CSRF token
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
 
     // Track active submissions using a Map
     const activeSubmissions = new Map();

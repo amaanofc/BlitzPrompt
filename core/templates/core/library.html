@@ -2,93 +2,135 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid py-5">
-    <div class="container">
-        <div class="row mb-4">
-            <div class="col-12">
-                <h1 class="display-4">Prompt Library</h1>
-                <!-- Add a hidden form field with CSRF token -->
-                {% csrf_token %}
-                
-                <!-- Search and Filter Section -->
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <form method="get" class="d-flex">
-                            <input type="text" name="search" class="form-control me-2" placeholder="Search prompts..." value="{{ search_query }}">
-                            <button type="submit" class="btn btn-primary">Search</button>
-                        </form>
-                    </div>
-                    <div class="col-md-4">
-                        <select class="form-select" onchange="window.location.href=this.value">
-                            <option value="{% url 'prompt_library' %}" {% if not selected_category %}selected{% endif %}>All Categories</option>
-                            {% for category in categories %}
-                            <option value="{% url 'prompt_library' %}?category={{ category.name }}" {% if selected_category == category.name %}selected{% endif %}>
-                                {{ category.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-12">
+            <h1 class="display-4 mb-4" style="color: #ff8c00; font-weight: 600;">Prompt Library</h1>
+            <!-- Add a hidden form field with CSRF token -->
+            {% csrf_token %}
+            
+            <!-- Search and Filter Section -->
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <form method="get" class="d-flex">
+                        <input type="text" name="search" class="form-control me-2 bg-dark text-light border-0" 
+                               placeholder="Search prompts..." 
+                               value="{{ search_query }}"
+                               style="padding: 12px; border-radius: 8px;">
+                        <button type="submit" class="btn btn-primary px-4" 
+                                style="background-color: #ff8c00; border-color: #ff8c00;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select bg-dark text-light border-0" 
+                            onchange="window.location.href=this.value"
+                            style="padding: 12px; border-radius: 8px; color: #ffb366;">
+                        <option value="{% url 'prompt_library' %}" {% if not selected_category %}selected{% endif %}>All Categories</option>
+                        {% for category in categories %}
+                        <option value="{% url 'prompt_library' %}?category={{ category.name }}" 
+                                {% if selected_category == category.name %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row g-4">
-            {% for prompt in prompts %}
-            <div class="col-md-4 col-lg-3">
-                <div class="card h-100 shadow-sm" style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.3);">
-                    <div class="card-body">
-                        <h5 class="card-title" style="color: #ff8c00;">{{ prompt.title }}</h5>
-                        <p class="card-text" style="color: #ffb366;">{{ prompt.description|truncatechars:100 }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{% url 'prompt_detail' prompt.id %}" 
-                               class="btn btn-primary btn-sm">View Prompt</a>
-                            <small style="color: #ffb366;">{{ prompt.total_votes }} votes</small>
+    <div class="row g-4">
+        {% for prompt in prompts %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100 shadow-lg border-0 prompt-card" 
+                 style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.1);">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-3" style="color: #ff8c00; font-weight: 600;">{{ prompt.title }}</h5>
+                    <p class="card-text mb-4" style="color: #ffb366; line-height: 1.5;">{{ prompt.description|truncatechars:100 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'prompt_detail' prompt.id %}" 
+                           class="btn btn-primary btn-sm"
+                           style="background-color: #ff8c00; border-color: #ff8c00; padding: 6px 12px;">
+                            <i class="fas fa-eye me-1"></i> View
+                        </a>
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-primary vote-btn {% if user_votes.prompt.id == 1 %}active{% endif %}" 
+                                    data-prompt-id="{{ prompt.id }}" 
+                                    data-value="1"
+                                    style="border-color: #ff8c00; color: #ff8c00;">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                            <span class="mx-2 vote-count" style="color: #ffb366; font-weight: 500;">{{ prompt.total_votes }}</span>
+                            <button class="btn btn-sm btn-outline-danger vote-btn {% if user_votes.prompt.id == -1 %}active{% endif %}" 
+                                    data-prompt-id="{{ prompt.id }}" 
+                                    data-value="-1"
+                                    style="border-color: #ff4444; color: #ff4444;">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info">
-                    No prompts found. {% if search_query %}Try a different search term.{% else %}Be the first to create a prompt!{% endif %}
-                </div>
-            </div>
-            {% endfor %}
         </div>
-
-        <!-- Pagination -->
-        {% if prompts.has_other_pages %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if prompts.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Previous</a>
-                </li>
-                {% endif %}
-                
-                {% for num in prompts.paginator.page_range %}
-                <li class="page-item {% if prompts.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">{{ num }}</a>
-                </li>
-                {% endfor %}
-                
-                {% if prompts.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">Next</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+        {% empty %}
+        <div class="col-12">
+            <div class="card p-5 text-center shadow-lg border-0" 
+                 style="background: linear-gradient(145deg, #2d1f1f, #3d2f2f); border: 1px solid rgba(255, 165, 0, 0.1);">
+                <i class="fas fa-search fa-3x mb-3" style="color: #ff8c00; opacity: 0.5;"></i>
+                <p class="lead" style="color: #ffb366;">
+                    No prompts found. {% if search_query %}Try a different search term.{% else %}Be the first to create a prompt!{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if prompts.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if prompts.has_previous %}
+            <li class="page-item">
+                <a class="page-link" 
+                   href="?page={{ prompts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                   style="background-color: #2d1f1f; border-color: #ff8c00; color: #ff8c00;">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in prompts.paginator.page_range %}
+            <li class="page-item {% if prompts.number == num %}active{% endif %}">
+                <a class="page-link" 
+                   href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                   style="background-color: {% if prompts.number == num %}#ff8c00{% else %}#2d1f1f{% endif %}; 
+                          border-color: #ff8c00; 
+                          color: {% if prompts.number == num %}#2d1f1f{% else %}#ff8c00{% endif %};">
+                    {{ num }}
+                </a>
+            </li>
+            {% endfor %}
+            
+            {% if prompts.has_next %}
+            <li class="page-item">
+                <a class="page-link" 
+                   href="?page={{ prompts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                   style="background-color: #2d1f1f; border-color: #ff8c00; color: #ff8c00;">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const voteButtons = document.querySelectorAll('.vote-btn');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                      '{{ csrf_token }}'; // Fallback to Django template variable
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
     
     voteButtons.forEach(button => {
         button.addEventListener('click', function(e) {

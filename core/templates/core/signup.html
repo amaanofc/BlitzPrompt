@@ -1,17 +1,68 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Sign Up</h2>
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 theme-card auth-card">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus fa-3x mb-3 theme-title"></i>
+                        <h2 class="mb-4 theme-title">Create Account</h2>
+                    </div>
+                    
                     <form method="post">
                         {% csrf_token %}
-                        {{ form.as_p }} <!-- Renders signup fields -->
-                        <button type="submit" class="btn btn-success w-100">Sign Up</button>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label theme-text">Username</label>
+                            <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" class="form-control bg-dark text-light border-0 theme-input" {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
+                            {% if form.username.errors %}
+                                <small class="text-danger">{{ form.username.errors|striptags }}</small>
+                            {% endif %}
+                            {% if form.username.help_text %}
+                                <small class="form-text theme-muted">{{ form.username.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label theme-text">Password</label>
+                            <input type="password" name="{{ form.password1.html_name }}" id="{{ form.password1.id_for_label }}" class="form-control bg-dark text-light border-0 theme-input">
+                            {% if form.password1.errors %}
+                                <small class="text-danger">{{ form.password1.errors|striptags }}</small>
+                            {% endif %}
+                            {% if form.password1.help_text %}
+                                <small class="form-text theme-muted">{{ form.password1.help_text|safe }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label theme-text">Confirm Password</label>
+                            <input type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}" class="form-control bg-dark text-light border-0 theme-input">
+                            {% if form.password2.errors %}
+                                <small class="text-danger">{{ form.password2.errors|striptags }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors|striptags }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-lg theme-btn-primary">Create Account</button>
+                        </div>
                     </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="theme-text">Already have an account? <a href="{% url 'login' %}" class="theme-title text-decoration-none">Sign In</a></p>
+                    </div>
                 </div>
             </div>
         </div>
