@@ -90,28 +90,79 @@ WSGI_APPLICATION = 'BlitzPrompt.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Check if we're on Render
-ON_RENDER = os.environ.get('RENDER', False)
-DATABASE_URL = os.environ.get('DATABASE_URL')
+ON_RENDER = os.environ.get('RENDER', '') == 'true'
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 
-if ON_RENDER or DATABASE_URL:
-    # Use PostgreSQL on Render
-    print(f"Using PostgreSQL database with URL: {DATABASE_URL if DATABASE_URL else 'Not provided'}")
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
-else:
-    # Use SQLite locally
-    print("Using SQLite database")
+print(f"DEBUG INFO - DATABASE_URL: '{DATABASE_URL}'")
+print(f"DEBUG INFO - RENDER: '{ON_RENDER}'")
+
+if DATABASE_URL:
+    # Use PostgreSQL on Render with DATABASE_URL
+    print(f"Using PostgreSQL database with URL: {DATABASE_URL}")
+    
+    # Convert postgresql:// to postgres:// if needed (dj-database-url compatibility)
+    if DATABASE_URL.startswith('postgresql://'):
+        print("Converting postgresql:// to postgres:// for compatibility")
+        DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgres://', 1)
+    
+    # Parse DATABASE_URL manually as a fallback if dj_database_url has issues
+    if DATABASE_URL.startswith('postgres://'):
+        # Handle connection details manually if needed
+        try:
+            DATABASES = {
+                'default': dj_database_url.parse(DATABASE_URL)
+            }
+        except Exception as e:
+            print(f"Error parsing DATABASE_URL with dj_database_url: {e}")
+            # Fallback to manual configuration
+            db_parts = DATABASE_URL.replace('postgres://', '').split('@')
+            auth = db_parts[0].split(':')
+            host_port_db = db_parts[1].split('/')
+            host_port = host_port_db[0].split(':')
+            
+            DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': host_port_db[1].split('?')[0],  # Remove query params if present
+                    'USER': auth[0],
+                    'PASSWORD': auth[1],
+                    'HOST': host_port[0],
+                    'PORT': host_port[1] if len(host_port) > 1 else '5432',
+                }
+            }
+    else:
+        # Default dj_database_url configuration
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=DATABASE_URL,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+elif ON_RENDER:
+    # If we're on Render but DATABASE_URL is not set, use SQLite
+    print("DATABASE_URL not found but RENDER=True, using SQLite fallback")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+else:
+    # Use SQLite locally
+    print("Using SQLite database for local development")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Print the current database configuration for debugging
+if 'default' in DATABASES and 'ENGINE' in DATABASES['default']:
+    print(f"Final database engine: {DATABASES['default']['ENGINE']}")
+else:
+    print("WARNING: No database engine configured!")
 
 
 # Password validation

@@ -22,7 +22,11 @@ services:
       - key: RENDER
         value: true
     plan: free
+    healthCheckPath: /health/
 
 databases:
   - name: blitzprompt_db
+    databaseName: blitzprompt
+    user: blitzprompt
+    ipAllowList: []  # Allow connections from anywhere
     plan: free
