@@ -129,3 +129,17 @@ class APIUsage(models.Model):
     
     class Meta:
         ordering = ['-timestamp']
+
+class PrimingPrompt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='priming_prompts')
+    prompt = models.ForeignKey(Prompt, on_delete=models.CASCADE, related_name='priming_usage')
+    position = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Priming prompt: {self.prompt.title} for {self.user.username} (Position: {self.position})"
+    
+    class Meta:
+        ordering = ['position']
+        unique_together = ['user', 'prompt']

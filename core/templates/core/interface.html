@@ -367,9 +367,25 @@
       >
         <div class="selected-prompt-content">
           <span id="selectedPromptTitle">No prompt selected</span>
-          <button id="clear-prompt-btn" title="Clear selected prompt">
-            <i class="fas fa-times"></i>
-          </button>
+          <div class="selected-prompt-actions">
+            <button id="toggle-prompt-content" title="Show/hide prompt content">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <a href="#" id="view-prompt-details" title="View prompt details" target="_blank">
+              <i class="fas fa-info-circle"></i>
+            </a>
+            <button id="clear-prompt-btn" title="Clear selected prompt">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        <div class="selected-prompt-expanded" id="selectedPromptExpanded" style="display: none;">
+          <div class="selected-prompt-body">
+            <div class="prompt-content-preview" id="selectedPromptContent"></div>
+            <div class="selected-prompt-note mt-2" style="color: #fff; background-color: rgba(255, 68, 68, 0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid #ff4444;">
+              <small><i class="fas fa-info-circle me-1"></i> This is a <strong>one-time prompt</strong> that will only be applied to your next message. For persistent instructions, use <strong>priming prompts</strong> in the sidebar.</small>
+            </div>
+          </div>
         </div>
       </div>
       <form id="chatForm">
@@ -509,6 +525,57 @@
           <div class="empty-list">No favorite prompts yet</div>
           {% endif %}
         </div>
+        
+        {% if user.is_authenticated %}
+        <!-- Priming Prompts Section -->
+        <div class="sidebar-section">
+          <h3>
+            <i class="fas fa-layer-group me-2"></i> Priming Prompts
+            <button class="info-button" type="button" id="togglePrimingInfoBtn" title="About Priming Prompts">
+              <i class="fas fa-info-circle"></i>
+            </button>
+          </h3>
+          
+          <!-- Priming Prompts Info Box -->
+          <div class="info-box" id="primingInfoBox" style="display: none;">
+            <p><strong>Priming Prompts</strong> are automatically included at the beginning of every conversation with the AI. They establish context and guide the AI's behavior throughout the entire conversation.</p>
+            <p>Unlike one-time prompts that are used only for a single message, priming prompts shape the entire chat experience.</p>
+            <p>You can add any of your prompts or favorites as priming prompts, and arrange them in order of importance.</p>
+          </div>
+          
+          <!-- Priming Prompts List -->
+          <div id="primingPromptsList" class="priming-prompts-list">
+            {% for priming_prompt in priming_prompts %}
+            <div class="priming-prompt-item" data-prompt-id="{{ priming_prompt.prompt.id }}" data-position="{{ forloop.counter }}">
+              <div class="priming-prompt-drag-handle">
+                <i class="fas fa-grip-lines"></i>
+              </div>
+              <div class="priming-prompt-info">
+                <div class="priming-prompt-title">{{ priming_prompt.prompt.title }}</div>
+                <div class="priming-prompt-position">Position: {{ forloop.counter }}</div>
+              </div>
+              <div class="priming-prompt-actions">
+                <button class="toggle-priming-btn {% if priming_prompt.is_active %}active{% else %}inactive{% endif %}" title="{% if priming_prompt.is_active %}Disable{% else %}Enable{% endif %} this priming prompt">
+                  <i class="fas fa-toggle-{% if priming_prompt.is_active %}on{% else %}off{% endif %}"></i>
+                </button>
+                <button class="view-prompt-btn" title="View details" data-prompt-id="{{ priming_prompt.prompt.id }}">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            {% empty %}
+            <div class="empty-list">No priming prompts configured</div>
+            {% endfor %}
+          </div>
+          
+          <div class="priming-controls">
+            <button id="managePrimingPromptsBtn" class="manage-btn">
+              <i class="fas fa-cog me-1"></i> Manage Priming Prompts
+            </button>
+          </div>
+        </div>
+        {% endif %}
+        
         {% if user.is_authenticated %}
         <button id="createPromptBtn" class="create-prompt-btn">
           <i class="fas fa-magic"></i> Create New Prompt
@@ -681,10 +748,9 @@
               Add to my priming prompts
             </label>
           </div>
-          <span class="help-text"
-            >Priming prompts are used at the beginning of every
-            conversation.</span
-          >
+          <span class="help-text">
+            <i class="fas fa-info-circle me-1"></i> Priming prompts are persistent instructions applied to all your conversations, unlike regular prompts which are one-time instructions.
+          </span>
         </div>
 
         <div class="alert" id="quickCreateStatus">
@@ -695,6 +761,108 @@
     <div class="create-prompt-modal-footer">
       <button class="btn btn-secondary" id="cancelCreateBtn">Cancel</button>
       <button class="btn btn-primary" id="savePromptBtn">Save Prompt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Priming Prompts Modal -->
+<div class="create-prompt-modal" id="managePrimingModal">
+  <div class="create-prompt-modal-content">
+    <div class="create-prompt-modal-header">
+      <h3><i class="fas fa-layer-group me-2"></i> Manage Priming Prompts</h3>
+      <button class="close-modal-btn" id="closeManagePrimingBtn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="create-prompt-modal-body">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Priming Prompts:</strong> These prompts are applied to every conversation in the order shown below. Drag to reorder.
+      </div>
+      
+      <div class="manage-priming-section">
+        <h4>Active Priming Prompts</h4>
+        <div id="managePrimingList" class="manage-priming-list">
+          <!-- Will be populated by JavaScript -->
+          <div class="empty-list">Loading priming prompts...</div>
+        </div>
+        
+        <div class="d-flex justify-content-end mb-3">
+          <button id="createCompoundBtn" class="btn btn-sm btn-success">
+            <i class="fas fa-object-group me-1"></i> Create Compound Prompt
+          </button>
+        </div>
+      </div>
+      
+      <div class="manage-priming-section">
+        <h4>Add More Priming Prompts</h4>
+        <div class="search-box">
+          <input type="text" id="primingSearchInput" placeholder="Search your prompts..." class="search-input">
+        </div>
+        <div id="availablePromptsList" class="available-prompts-list">
+          <!-- Will be populated by JavaScript -->
+          <div class="empty-list">Loading available prompts...</div>
+        </div>
+      </div>
+      
+      <div class="alert" id="primingUpdateStatus" style="display: none;">
+        <span id="primingStatusMessage"></span>
+      </div>
+    </div>
+    <div class="create-prompt-modal-footer">
+      <button class="btn btn-secondary" id="cancelPrimingBtn">Cancel</button>
+      <button class="btn btn-primary" id="savePrimingOrderBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Compound Prompt Modal -->
+<div class="create-prompt-modal" id="compoundPromptModal">
+  <div class="create-prompt-modal-content">
+    <div class="create-prompt-modal-header">
+      <h3><i class="fas fa-object-group me-2"></i> Create Compound Prompt</h3>
+      <button class="close-modal-btn" id="closeCompoundModalBtn">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="create-prompt-modal-body">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Compound Prompts:</strong> Combine multiple prompts into a single priming prompt. Select the prompts you want to combine from your active prompts.
+      </div>
+      
+      <div class="form-group mb-3">
+        <label for="compoundTitle">Title</label>
+        <input type="text" id="compoundTitle" class="form-control" placeholder="Give your compound prompt a title">
+      </div>
+      
+      <div class="form-group mb-3">
+        <label for="compoundDescription">Description (optional)</label>
+        <textarea id="compoundDescription" class="form-control" placeholder="Describe what this compound prompt does"></textarea>
+      </div>
+      
+      <div class="compound-prompt-builder">
+        <label>Select Prompts to Combine</label>
+        <div id="selectablePromptsList" class="selectable-prompts-list">
+          <!-- Will be populated by JavaScript -->
+          <div class="empty-list">Loading available prompts...</div>
+        </div>
+      </div>
+      
+      <div class="form-group mb-3 mt-4">
+        <label>Preview</label>
+        <div id="compoundPreview" class="compound-preview">
+          <div class="compound-preview-content">Select prompts to see a preview</div>
+        </div>
+      </div>
+      
+      <div class="alert" id="compoundStatus" style="display: none;">
+        <span id="compoundStatusMessage"></span>
+      </div>
+    </div>
+    <div class="create-prompt-modal-footer">
+      <button class="btn btn-secondary" id="cancelCompoundBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveCompoundBtn">Create Compound Prompt</button>
     </div>
   </div>
 </div>
@@ -744,6 +912,9 @@
       "selectedPromptContainer"
     );
     const selectedPromptTitle = document.getElementById("selectedPromptTitle");
+    const selectedPromptExpanded = document.getElementById("selectedPromptExpanded");
+    const selectedPromptContent = document.getElementById("selectedPromptContent");
+    const togglePromptContentBtn = document.getElementById("toggle-prompt-content");
     const clearPromptBtn = document.getElementById("clear-prompt-btn");
 
     // Sidebar toggles
@@ -820,6 +991,17 @@
         const promptId = this.dataset.promptId;
         selectPrompt(promptId);
       });
+    });
+
+    // Toggle prompt content expansion
+    togglePromptContentBtn.addEventListener("click", function() {
+      if (selectedPromptExpanded.style.display === "none") {
+        selectedPromptExpanded.style.display = "block";
+        this.classList.add("expanded");
+      } else {
+        selectedPromptExpanded.style.display = "none";
+        this.classList.remove("expanded");
+      }
     });
 
     // Selected prompt handling
@@ -997,8 +1179,16 @@
           }
 
           selectedPromptTitle.textContent = data.title;
+          selectedPromptContent.textContent = data.content;
           selectedPromptContainer.style.display = "block";
           selectedPromptContainer.dataset.promptId = promptId;
+          
+          // Reset expansion state (collapsed by default)
+          selectedPromptExpanded.style.display = "none";
+          togglePromptContentBtn.classList.remove("expanded");
+          
+          // Set the details link URL
+          document.getElementById('view-prompt-details').href = `/prompt/${promptId}/`;
 
           // Highlight the selected prompt in the sidebar
           document.querySelectorAll(".prompt-item").forEach((item) => {
@@ -1019,6 +1209,8 @@
     function clearSelectedPrompt() {
       selectedPromptContainer.style.display = "none";
       selectedPromptContainer.dataset.promptId = "";
+      selectedPromptExpanded.style.display = "none";
+      togglePromptContentBtn.classList.remove("expanded");
       document.querySelectorAll(".prompt-item").forEach((item) => {
         item.classList.remove("selected");
       });
@@ -1477,6 +1669,684 @@
           console.error("Error publishing prompt:", error);
         });
     }
+
+    // Loading indicator
+    loadingIndicator.style.display = "none";
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Priming Prompts Management
+    const togglePrimingInfoBtn = document.getElementById("togglePrimingInfoBtn");
+    const primingInfoBox = document.getElementById("primingInfoBox");
+    const managePrimingPromptsBtn = document.getElementById("managePrimingPromptsBtn");
+    const managePrimingModal = document.getElementById("managePrimingModal");
+    const closeManagePrimingBtn = document.getElementById("closeManagePrimingBtn");
+    const cancelPrimingBtn = document.getElementById("cancelPrimingBtn");
+    const savePrimingOrderBtn = document.getElementById("savePrimingOrderBtn");
+    const managePrimingList = document.getElementById("managePrimingList");
+    const availablePromptsList = document.getElementById("availablePromptsList");
+    const primingSearchInput = document.getElementById("primingSearchInput");
+    const primingUpdateStatus = document.getElementById("primingUpdateStatus");
+    const primingStatusMessage = document.getElementById("primingStatusMessage");
+    
+    // Store priming prompts data
+    let primingPrompts = [];
+    let userPrompts = [];
+    
+    // Toggle priming prompts info
+    if (togglePrimingInfoBtn) {
+      togglePrimingInfoBtn.addEventListener("click", function() {
+        if (primingInfoBox.style.display === "none") {
+          primingInfoBox.style.display = "block";
+        } else {
+          primingInfoBox.style.display = "none";
+        }
+      });
+    }
+    
+    // Open manage priming prompts modal
+    if (managePrimingPromptsBtn) {
+      managePrimingPromptsBtn.addEventListener("click", function() {
+        managePrimingModal.classList.add("show");
+        fetchPrimingPrompts();
+      });
+    }
+    
+    // Close manage priming prompts modal
+    if (closeManagePrimingBtn) {
+      closeManagePrimingBtn.addEventListener("click", function() {
+        managePrimingModal.classList.remove("show");
+      });
+    }
+    
+    if (cancelPrimingBtn) {
+      cancelPrimingBtn.addEventListener("click", function() {
+        managePrimingModal.classList.remove("show");
+      });
+    }
+    
+    // Search available prompts
+    if (primingSearchInput) {
+      primingSearchInput.addEventListener("input", function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        filterAvailablePrompts(searchTerm);
+      });
+    }
+    
+    // Fetch priming prompts and user prompts
+    function fetchPrimingPrompts() {
+      // Set loading state
+      managePrimingList.innerHTML = '<div class="empty-list">Loading priming prompts...</div>';
+      availablePromptsList.innerHTML = '<div class="empty-list">Loading available prompts...</div>';
+      
+      // Make API request to get priming prompts
+      fetch("/api/priming-prompts/")
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            primingPrompts = data.priming_prompts || [];
+            userPrompts = data.user_prompts || [];
+            
+            // Render priming prompts
+            renderPrimingPrompts();
+            
+            // Render available prompts
+            renderAvailablePrompts();
+            
+            // Initialize drag and drop
+            initDragAndDrop();
+          } else {
+            managePrimingList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+            availablePromptsList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+          }
+        })
+        .catch(error => {
+          console.error("Error loading priming prompts:", error);
+          managePrimingList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+          availablePromptsList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+        });
+    }
+    
+    // Render priming prompts list
+    function renderPrimingPrompts() {
+      if (primingPrompts.length === 0) {
+        managePrimingList.innerHTML = '<div class="empty-list">No priming prompts configured</div>';
+        return;
+      }
+      
+      managePrimingList.innerHTML = '';
+      
+      primingPrompts.forEach((prompt, index) => {
+        const promptItem = document.createElement("div");
+        promptItem.className = "manage-priming-item";
+        promptItem.dataset.promptId = prompt.id;
+        promptItem.dataset.position = index + 1;
+        promptItem.draggable = true;
+        
+        promptItem.innerHTML = `
+          <div class="manage-drag-handle">
+            <i class="fas fa-grip-lines"></i>
+          </div>
+          <div class="manage-prompt-position">${index + 1}</div>
+          <div class="manage-prompt-info">
+            <div class="manage-prompt-title">${prompt.title}</div>
+            <div class="manage-prompt-description">${prompt.description || 'No description'}</div>
+          </div>
+          <div class="manage-prompt-actions">
+            <button class="view-prompt-btn" title="View details" data-prompt-id="${prompt.id}">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="remove-priming-btn" title="Remove from priming" data-prompt-id="${prompt.id}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        `;
+        
+        managePrimingList.appendChild(promptItem);
+      });
+      
+      // Add event listeners to buttons
+      managePrimingList.querySelectorAll(".view-prompt-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+          fetchPromptDetails(this.dataset.promptId);
+        });
+      });
+      
+      managePrimingList.querySelectorAll(".remove-priming-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+          removePrimingPrompt(this.dataset.promptId);
+        });
+      });
+    }
+    
+    // Render available prompts list
+    function renderAvailablePrompts() {
+      // Filter out prompts that are already in priming prompts
+      const primingPromptIds = primingPrompts.map(p => String(p.id));
+      const availablePrompts = userPrompts.filter(p => !primingPromptIds.includes(String(p.id)));
+      
+      if (availablePrompts.length === 0) {
+        availablePromptsList.innerHTML = '<div class="empty-list">No other prompts available</div>';
+        return;
+      }
+      
+      availablePromptsList.innerHTML = '';
+      
+      // Sort available prompts alphabetically by title
+      availablePrompts.sort((a, b) => a.title.localeCompare(b.title));
+      
+      availablePrompts.forEach(prompt => {
+        const promptItem = document.createElement("div");
+        promptItem.className = "available-prompt-item";
+        promptItem.dataset.promptId = prompt.id;
+        
+        promptItem.innerHTML = `
+          <div class="available-prompt-info">
+            <div class="available-prompt-title">${prompt.title}</div>
+            <div class="available-prompt-description">${prompt.description || 'No description'}</div>
+          </div>
+          <button class="add-priming-btn" title="Add to priming prompts" data-prompt-id="${prompt.id}">
+            <i class="fas fa-plus"></i>
+          </button>
+        `;
+        
+        availablePromptsList.appendChild(promptItem);
+      });
+      
+      // Add event listeners to add buttons
+      availablePromptsList.querySelectorAll(".add-priming-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+          addPrimingPrompt(this.dataset.promptId);
+        });
+      });
+      
+      // Update the availablePromptsCount element if it exists
+      const countElement = document.getElementById('availablePromptsCount');
+      if (countElement) {
+        countElement.textContent = availablePrompts.length;
+      }
+    }
+    
+    // Filter available prompts based on search
+    function filterAvailablePrompts(searchTerm) {
+      const promptItems = availablePromptsList.querySelectorAll(".available-prompt-item");
+      
+      promptItems.forEach(item => {
+        const title = item.querySelector(".available-prompt-title").textContent.toLowerCase();
+        const description = item.querySelector(".available-prompt-description").textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || description.includes(searchTerm)) {
+          item.style.display = "flex";
+        } else {
+          item.style.display = "none";
+        }
+      });
+    }
+    
+    // Remove a prompt from priming prompts
+    function removePrimingPrompt(promptId) {
+      primingPrompts = primingPrompts.filter(p => p.id !== promptId);
+      renderPrimingPrompts();
+      renderAvailablePrompts();
+      initDragAndDrop();
+    }
+    
+    // Add a prompt to priming prompts
+    function addPrimingPrompt(promptId) {
+      promptId = String(promptId);
+      
+      // Find the prompt in userPrompts by comparing as strings
+      const prompt = userPrompts.find(p => String(p.id) === promptId);
+      
+      if (prompt) {
+        // Ensure we don't add duplicates
+        const alreadyExists = primingPrompts.some(p => String(p.id) === promptId);
+        
+        if (!alreadyExists) {
+          // Add position to the prompt object
+          prompt.position = primingPrompts.length + 1;
+          prompt.is_active = true;
+          
+          primingPrompts.push(prompt);
+          renderPrimingPrompts();
+          renderAvailablePrompts();
+          initDragAndDrop();
+          
+          // Add a visual feedback
+          const status = document.createElement('div');
+          status.className = 'alert alert-success mt-2';
+          status.textContent = `Added "${prompt.title}" to priming prompts`;
+          status.style.position = 'fixed';
+          status.style.bottom = '20px';
+          status.style.right = '20px';
+          status.style.zIndex = '9999';
+          document.body.appendChild(status);
+          
+          // Remove the alert after 2 seconds
+          setTimeout(() => {
+            status.remove();
+          }, 2000);
+        }
+      } else {
+        console.error("Prompt not found:", promptId);
+      }
+    }
+    
+    // Initialize drag and drop functionality
+    function initDragAndDrop() {
+      const items = managePrimingList.querySelectorAll(".manage-priming-item");
+      let draggedItem = null;
+      
+      items.forEach(item => {
+        // When item starts being dragged
+        item.addEventListener("dragstart", function() {
+          draggedItem = this;
+          setTimeout(() => {
+            this.classList.add("dragging");
+          }, 0);
+        });
+        
+        // When drag ends
+        item.addEventListener("dragend", function() {
+          this.classList.remove("dragging");
+          updatePositions();
+        });
+        
+        // Handle dragover on items
+        item.addEventListener("dragover", function(e) {
+          e.preventDefault();
+          if (draggedItem === this) return;
+          
+          const bounding = this.getBoundingClientRect();
+          const offset = bounding.y + (bounding.height / 2);
+          
+          if (e.clientY < offset) {
+            this.parentNode.insertBefore(draggedItem, this);
+          } else {
+            this.parentNode.insertBefore(draggedItem, this.nextSibling);
+          }
+        });
+        
+        // Handle dragover on container
+        managePrimingList.addEventListener("dragover", function(e) {
+          e.preventDefault();
+        });
+      });
+    }
+    
+    // Update position numbers after drag and drop
+    function updatePositions() {
+      const items = managePrimingList.querySelectorAll(".manage-priming-item");
+      
+      // Update UI
+      items.forEach((item, index) => {
+        item.dataset.position = index + 1;
+        const positionElement = item.querySelector(".manage-prompt-position");
+        positionElement.textContent = index + 1;
+      });
+      
+      // Update data
+      const newOrder = Array.from(items).map(item => {
+        return {
+          id: item.dataset.promptId,
+          position: parseInt(item.dataset.position)
+        };
+      });
+      
+      // Reorder primingPrompts array based on new positions
+      primingPrompts = newOrder.map(item => {
+        return primingPrompts.find(p => p.id === item.id);
+      });
+    }
+    
+    // Save priming prompts order
+    savePrimingOrderBtn.addEventListener("click", function() {
+      const orderedPrompts = primingPrompts.map((prompt, index) => ({
+        id: prompt.id,
+        position: index + 1
+      }));
+      
+      // Show saving status
+      primingUpdateStatus.className = "alert alert-info";
+      primingStatusMessage.textContent = "Saving priming prompts order...";
+      primingUpdateStatus.style.display = "block";
+      
+      // Make API request to save order
+      fetch("/api/priming-prompts/update/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+          prompts: orderedPrompts
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            primingUpdateStatus.className = "alert alert-success";
+            primingStatusMessage.textContent = "Priming prompts updated successfully!";
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+              managePrimingModal.classList.remove("show");
+              primingUpdateStatus.style.display = "none";
+              
+              // Refresh the sidebar display
+              loadPrimingPromptsForSidebar();
+            }, 1500);
+          } else {
+            primingUpdateStatus.className = "alert alert-danger";
+            primingStatusMessage.textContent = data.error || "Error updating priming prompts";
+          }
+        })
+        .catch(error => {
+          console.error("Error saving priming prompts:", error);
+          primingUpdateStatus.className = "alert alert-danger";
+          primingStatusMessage.textContent = "An unexpected error occurred";
+        });
+    });
+    
+    // Load priming prompts for sidebar display
+    function loadPrimingPromptsForSidebar() {
+      fetch("/api/priming-prompts/")
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const primingPromptsList = document.getElementById("primingPromptsList");
+            
+            if (data.priming_prompts && data.priming_prompts.length > 0) {
+              primingPromptsList.innerHTML = "";
+              
+              data.priming_prompts.forEach((prompt, index) => {
+                const promptItem = document.createElement("div");
+                promptItem.className = "priming-prompt-item";
+                promptItem.dataset.promptId = prompt.id;
+                promptItem.dataset.position = index + 1;
+                
+                promptItem.innerHTML = `
+                  <div class="priming-prompt-drag-handle">
+                    <i class="fas fa-grip-lines"></i>
+                  </div>
+                  <div class="priming-prompt-info">
+                    <div class="priming-prompt-title">${prompt.title}</div>
+                    <div class="priming-prompt-position">Position: ${index + 1}</div>
+                  </div>
+                  <div class="priming-prompt-actions">
+                    <button class="toggle-priming-btn {% if priming_prompt.is_active %}active{% else %}inactive{% endif %}" title="{% if priming_prompt.is_active %}Disable{% else %}Enable{% endif %} this priming prompt">
+                      <i class="fas fa-toggle-{% if priming_prompt.is_active %}on{% else %}off{% endif %}"></i>
+                    </button>
+                    <button class="view-prompt-btn" title="View details" data-prompt-id="${prompt.id}">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                `;
+                
+                primingPromptsList.appendChild(promptItem);
+              });
+              
+              // Add event listeners
+              primingPromptsList.querySelectorAll(".view-prompt-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                  fetchPromptDetails(this.dataset.promptId);
+                });
+              });
+              
+              primingPromptsList.querySelectorAll(".toggle-priming-btn").forEach(btn => {
+                btn.addEventListener("click", function() {
+                  togglePrimingStatus(this, this.closest(".priming-prompt-item").dataset.promptId);
+                });
+              });
+            } else {
+              primingPromptsList.innerHTML = '<div class="empty-list">No priming prompts configured</div>';
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error loading priming prompts for sidebar:", error);
+        });
+    }
+    
+    // Toggle priming prompt active status
+    function togglePrimingStatus(button, promptId) {
+      if (button.classList.contains("active")) {
+        button.classList.remove("active");
+        button.classList.add("inactive");
+        button.querySelector("i").classList.remove("fa-toggle-on");
+        button.querySelector("i").classList.add("fa-toggle-off");
+        button.title = "Enable this priming prompt";
+      } else {
+        button.classList.remove("inactive");
+        button.classList.add("active");
+        button.querySelector("i").classList.remove("fa-toggle-off");
+        button.querySelector("i").classList.add("fa-toggle-on");
+        button.title = "Disable this priming prompt";
+      }
+      
+      // Update the prompt status via API
+      fetch(`/api/priming-prompts/toggle/${promptId}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        }
+      })
+        .catch(error => {
+          console.error("Error toggling priming prompt status:", error);
+        });
+    }
+    
+    // Initialize priming prompts
+    if (document.getElementById("primingPromptsList")) {
+      loadPrimingPromptsForSidebar();
+    }
+    
+    // Compound Prompt Functionality
+    const createCompoundBtn = document.getElementById("createCompoundBtn");
+    const compoundPromptModal = document.getElementById("compoundPromptModal");
+    const closeCompoundModalBtn = document.getElementById("closeCompoundModalBtn");
+    const cancelCompoundBtn = document.getElementById("cancelCompoundBtn");
+    const saveCompoundBtn = document.getElementById("saveCompoundBtn");
+    const selectablePromptsList = document.getElementById("selectablePromptsList");
+    const compoundPreview = document.getElementById("compoundPreview");
+    const compoundTitle = document.getElementById("compoundTitle");
+    const compoundDescription = document.getElementById("compoundDescription");
+    const compoundStatus = document.getElementById("compoundStatus");
+    const compoundStatusMessage = document.getElementById("compoundStatusMessage");
+    
+    // Store selected prompts for compound
+    let selectedPrompts = [];
+    
+    // Open compound prompt modal
+    if (createCompoundBtn) {
+      createCompoundBtn.addEventListener("click", function() {
+        compoundPromptModal.classList.add("show");
+        loadSelectablePrompts();
+      });
+    }
+    
+    // Close compound prompt modal
+    if (closeCompoundModalBtn) {
+      closeCompoundModalBtn.addEventListener("click", function() {
+        compoundPromptModal.classList.remove("show");
+      });
+    }
+    
+    if (cancelCompoundBtn) {
+      cancelCompoundBtn.addEventListener("click", function() {
+        compoundPromptModal.classList.remove("show");
+      });
+    }
+    
+    // Load selectable prompts for compound prompt creation
+    function loadSelectablePrompts() {
+      // Start with active priming prompts
+      selectablePromptsList.innerHTML = '<div class="empty-list">Loading prompts...</div>';
+      
+      fetch("/api/priming-prompts/")
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            selectedPrompts = []; // Reset selected prompts
+            updateCompoundPreview();
+            
+            if (data.user_prompts && data.user_prompts.length > 0) {
+              selectablePromptsList.innerHTML = "";
+              
+              data.user_prompts.forEach(prompt => {
+                const promptItem = document.createElement("div");
+                promptItem.className = "selectable-prompt-item";
+                promptItem.dataset.promptId = prompt.id;
+                promptItem.dataset.title = prompt.title;
+                promptItem.dataset.content = prompt.content || "";
+                
+                promptItem.innerHTML = `
+                  <div class="selectable-prompt-checkbox">
+                    <input type="checkbox" id="prompt-${prompt.id}" class="prompt-checkbox">
+                  </div>
+                  <div class="selectable-prompt-info">
+                    <div class="selectable-prompt-title">${prompt.title}</div>
+                    <div class="selectable-prompt-description">${prompt.description || 'No description'}</div>
+                  </div>
+                `;
+                
+                selectablePromptsList.appendChild(promptItem);
+                
+                // Add click event to select/deselect
+                promptItem.addEventListener("click", function(e) {
+                  // Don't toggle if clicking directly on the checkbox (it handles its own state)
+                  if (e.target.type !== 'checkbox') {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    togglePromptSelection(this, checkbox.checked);
+                  }
+                });
+                
+                // Add change event to checkbox
+                const checkbox = promptItem.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener("change", function() {
+                  togglePromptSelection(promptItem, this.checked);
+                });
+              });
+            } else {
+              selectablePromptsList.innerHTML = '<div class="empty-list">No prompts available</div>';
+            }
+          } else {
+            selectablePromptsList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+          }
+        })
+        .catch(error => {
+          console.error("Error loading selectable prompts:", error);
+          selectablePromptsList.innerHTML = '<div class="empty-list">Error loading prompts</div>';
+        });
+    }
+    
+    // Toggle prompt selection for compound prompt
+    function togglePromptSelection(promptItem, isSelected) {
+      const promptId = promptItem.dataset.promptId;
+      const promptTitle = promptItem.dataset.title;
+      const promptContent = promptItem.dataset.content;
+      
+      if (isSelected) {
+        promptItem.classList.add("selected");
+        selectedPrompts.push({
+          id: promptId,
+          title: promptTitle,
+          content: promptContent
+        });
+      } else {
+        promptItem.classList.remove("selected");
+        selectedPrompts = selectedPrompts.filter(p => p.id !== promptId);
+      }
+      
+      updateCompoundPreview();
+    }
+    
+    // Update the compound prompt preview
+    function updateCompoundPreview() {
+      if (selectedPrompts.length === 0) {
+        compoundPreview.querySelector(".compound-preview-content").textContent = "Select prompts to see a preview";
+        return;
+      }
+      
+      let previewContent = "# Combined Prompt\n\n";
+      
+      selectedPrompts.forEach((prompt, index) => {
+        previewContent += `## ${index + 1}. ${prompt.title}\n\n${prompt.content}\n\n`;
+      });
+      
+      compoundPreview.querySelector(".compound-preview-content").textContent = previewContent;
+    }
+    
+    // Save compound prompt
+    saveCompoundBtn.addEventListener("click", function() {
+      // Extract selected prompt IDs
+      const selectedPrompts = Array.from(document.querySelectorAll(".selectable-prompt-item.selected"))
+        .map(item => parseInt(item.dataset.promptId));
+      
+      if (selectedPrompts.length === 0) {
+        alert("Please select at least one prompt to create a compound prompt");
+        return;
+      }
+      
+      const title = document.getElementById("compoundPromptTitle").value.trim();
+      const description = document.getElementById("compoundPromptDescription").value.trim();
+      
+      if (!title) {
+        alert("Please enter a title for the compound prompt");
+        return;
+      }
+      
+      // Show saving status
+      const compoundStatus = document.getElementById("compoundUpdateStatus");
+      const compoundStatusMessage = document.getElementById("compoundStatusMessage");
+      compoundStatus.className = "alert alert-info";
+      compoundStatusMessage.textContent = "Creating compound prompt...";
+      compoundStatus.style.display = "block";
+      
+      // Create the prompt via API
+      fetch("/create-prompt/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value
+        },
+        body: new URLSearchParams({
+          'title': title,
+          'description': description,
+          'content': generateCompoundPrompt(),
+          'is_priming': 'on',
+          'categories': ['Compound']
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            compoundStatus.className = "alert alert-success";
+            compoundStatusMessage.textContent = "Compound prompt created successfully!";
+            
+            // Close modal after delay
+            setTimeout(() => {
+              compoundPromptModal.classList.remove("show");
+              compoundStatus.style.display = "none";
+              
+              // Refresh priming prompts
+              loadPrimingPromptsForSidebar();
+            }, 1500);
+          } else {
+            compoundStatus.className = "alert alert-danger";
+            compoundStatusMessage.textContent = data.error || "Error creating compound prompt";
+          }
+        })
+        .catch(error => {
+          console.error("Error creating compound prompt:", error);
+          compoundStatus.className = "alert alert-danger";
+          compoundStatusMessage.textContent = "An unexpected error occurred";
+        });
+    });
+
+    // Toggle info boxes
+    // REMOVED - This section was causing variable redeclaration errors
   });
 </script>
 {% endblock %}

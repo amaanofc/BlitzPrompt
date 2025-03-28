@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Q, Count, Sum
 from django.core.paginator import Paginator
-from .models import Prompt, Category, Vote, Comment, Conversation, Message, APIUsage
+from .models import Prompt, Category, Vote, Comment, Conversation, Message, APIUsage, PrimingPrompt
 import json
 import requests
 from django.conf import settings
@@ -116,6 +116,12 @@ def gpt_interface(request):
         
         # Get user's created prompts
         user_prompts = Prompt.objects.filter(author=request.user)
+        
+        # Get user's priming prompts
+        priming_prompts = PrimingPrompt.objects.filter(
+            user=request.user, 
+            is_active=True
+        ).select_related('prompt').order_by('position')
 
         # Check if a specific conversation is requested
         conversation_id = request.GET.get('conversation_id')
@@ -141,6 +147,7 @@ def gpt_interface(request):
         # For non-authenticated users
         favorites = []
         user_prompts = []
+        priming_prompts = []
         current_conversation = None
         messages = []
         conversations = []
@@ -157,6 +164,7 @@ def gpt_interface(request):
     return render(request, 'core/interface.html', {
         'favorites': favorites,
         'user_prompts': user_prompts,
+        'priming_prompts': priming_prompts,
         'current_conversation': current_conversation,
         'messages': messages,
         'conversations': conversations,
@@ -454,6 +462,18 @@ def create_prompt(request):
                 # If it's a priming prompt, add to favorites automatically
                 if is_priming:
                     request.user.favorites.add(prompt)
+                    
+                    # Get the current maximum position
+                    max_position = PrimingPrompt.objects.filter(user=request.user).aggregate(max_pos=models.Max('position'))
+                    position = (max_position['max_pos'] or 0) + 1
+                    
+                    # Create the priming prompt entry
+                    PrimingPrompt.objects.create(
+                        user=request.user,
+                        prompt=prompt,
+                        position=position,
+                        is_active=True
+                    )
                 
                 return JsonResponse({
                     'success': True,
@@ -624,6 +644,23 @@ def chat_api(request):
                 'role': role,
                 'content': content
             })
+        
+        # Get and add all active priming prompts in their defined order
+        priming_prompts = PrimingPrompt.objects.filter(
+            user=request.user,
+            is_active=True
+        ).select_related('prompt').order_by('position')
+        
+        # Insert priming prompts at the beginning, right after system message
+        system_index = next((i for i, msg in enumerate(conversation_messages) if msg['role'] == 'system'), 0)
+        insert_index = system_index + 1
+        
+        for pp in priming_prompts:
+            conversation_messages.insert(insert_index, {
+                'role': 'system',
+                'content': pp.prompt.get_formatted_prompt()
+            })
+            insert_index += 1
             
         # Add the selected prompt as a system message if present
         if selected_prompt:
@@ -811,3 +848,108 @@ def get_rate_limits(user):
         'requests_remaining': max(0, requests_limit - requests_24h),
         'tokens_remaining': max(0, tokens_limit - tokens_24h)
     }
+
+@login_required
+def priming_prompts_api(request):
+    """API endpoint to get all priming prompts for the current user."""
+    try:
+        # Get the user's priming prompts
+        priming_prompts = PrimingPrompt.objects.filter(user=request.user).select_related('prompt').order_by('position')
+        
+        # Get the user's prompts and favorites - ensure we're getting the same structure from both
+        user_prompts = list(Prompt.objects.filter(author=request.user).values('id', 'title', 'description'))
+        favorite_prompts = list(request.user.favorites.all().values('id', 'title', 'description'))
+        
+        # Combine user prompts and favorites
+        all_available_prompts = user_prompts + favorite_prompts
+        
+        # Remove duplicates by creating a dictionary with prompt IDs as keys
+        unique_prompts = {}
+        for prompt in all_available_prompts:
+            unique_prompts[prompt['id']] = prompt
+        
+        # Format the priming prompts data
+        priming_prompts_data = []
+        for pp in priming_prompts:
+            priming_prompts_data.append({
+                'id': pp.prompt.id,
+                'title': pp.prompt.title,
+                'description': pp.prompt.description,
+                'position': pp.position,
+                'is_active': pp.is_active
+            })
+        
+        # Format all available prompts data - this should be a list, not a dictionary
+        user_prompts_data = list(unique_prompts.values())
+        
+        return JsonResponse({
+            'success': True,
+            'priming_prompts': priming_prompts_data,
+            'user_prompts': user_prompts_data
+        })
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_POST
+def update_priming_prompts(request):
+    """API endpoint to update the order of priming prompts."""
+    try:
+        data = json.loads(request.body)
+        prompts = data.get('prompts', [])
+        
+        with transaction.atomic():
+            # Delete existing priming prompts
+            PrimingPrompt.objects.filter(user=request.user).delete()
+            
+            # Create new priming prompts with updated positions
+            for prompt_data in prompts:
+                prompt_id = prompt_data.get('id')
+                position = prompt_data.get('position', 0)
+                
+                # Verify the prompt exists
+                prompt = get_object_or_404(Prompt, id=prompt_id)
+                
+                # Create the priming prompt
+                PrimingPrompt.objects.create(
+                    user=request.user,
+                    prompt=prompt,
+                    position=position,
+                    is_active=True
+                )
+        
+        return JsonResponse({
+            'success': True
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@require_POST
+def toggle_priming_prompt(request, prompt_id):
+    """API endpoint to toggle a priming prompt's active status."""
+    try:
+        # Get the priming prompt
+        priming_prompt = get_object_or_404(PrimingPrompt, user=request.user, prompt_id=prompt_id)
+        
+        # Toggle the active status
+        priming_prompt.is_active = not priming_prompt.is_active
+        priming_prompt.save()
+        
+        return JsonResponse({
+            'success': True,
+            'is_active': priming_prompt.is_active
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

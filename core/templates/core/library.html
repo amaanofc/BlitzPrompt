@@ -61,6 +61,11 @@
             <div class="card h-100 shadow-lg border-0 prompt-card">
                 <div class="card-body p-4">
                     <h5 class="theme-title mb-3">{{ prompt.title }}</h5>
+                    <div class="mb-2">
+                        {% for category in prompt.categories.all %}
+                        <span class="badge bg-secondary me-1">{{ category.name }}</span>
+                        {% endfor %}
+                    </div>
                     <p class="theme-text mb-4">{{ prompt.description|truncatechars:100 }}</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <a href="{% url 'prompt_detail' prompt.id %}" 

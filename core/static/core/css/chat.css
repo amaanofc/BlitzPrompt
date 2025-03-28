@@ -401,9 +401,65 @@
     padding: 8px 12px;
     background-color: #403030;
     border: 1px solid #4d3333;
-    border-radius: 4px;
+    border-radius: 4px 4px 0 0;
     font-size: 0.9rem;
     color: #ffffff;
+}
+
+.selected-prompt-expanded {
+    border: 1px solid #4d3333;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    background-color: #333333;
+    margin-top: -1px;
+    overflow: hidden;
+}
+
+.selected-prompt-body {
+    padding: 10px 12px;
+}
+
+.prompt-content-preview {
+    font-family: monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    color: #ffffff;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #333333;
+}
+
+.selected-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#toggle-prompt-content {
+    background: none;
+    border: none;
+    color: #aaaaaa;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#toggle-prompt-content:hover {
+    color: #ffffff;
+}
+
+#toggle-prompt-content.expanded i {
+    transform: rotate(180deg);
+}
+
+#view-prompt-details {
+    color: #ff4444;
+    font-size: 1rem;
+    transition: color 0.2s;
+}
+
+#view-prompt-details:hover {
+    color: #ff6666;
 }
 
 #clear-prompt-btn {
@@ -411,6 +467,10 @@
     border: none;
     color: #aaaaaa;
     cursor: pointer;
+}
+
+#clear-prompt-btn:hover {
+    color: #ffffff;
 }
 
 .input-group {
@@ -520,6 +580,7 @@
     padding: 15px;
     border-radius: 4px;
     color: #ffffff;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
     white-space: pre-wrap;
     max-height: 300px;
     overflow-y: auto;
@@ -573,64 +634,148 @@
     max-height: 60%;
 }
 
-.debug-panel.collapsed {
-    transform: translateY(calc(100% - 40px));
+/* Priming Prompts Styles */
+.priming-prompts-list {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+    border-radius: 4px;
 }
 
-.debug-header {
-    padding: 10px 15px;
-    background-color: #333333;
+.priming-prompt-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    cursor: pointer;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
 }
 
-.debug-header h3 {
-    margin: 0;
+.priming-prompt-item:hover {
+    background-color: #3d3d3d;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.priming-prompt-item.dragging {
+    opacity: 0.7;
+    background-color: #444444;
+    border: 1px dashed #ff4444;
+}
+
+.priming-prompt-drag-handle {
+    cursor: move;
+    color: #888888;
+    padding: 0 8px;
+}
+
+.priming-prompt-info {
+    flex-grow: 1;
+    padding: 0 8px;
+}
+
+.priming-prompt-title {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.priming-prompt-position {
+    font-size: 0.75rem;
+    color: #aaaaaa;
+}
+
+.priming-prompt-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.priming-prompt-actions button {
+    background: none;
+    border: none;
+    color: #aaaaaa;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1rem;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.priming-prompt-actions button:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-priming-btn.active {
+    color: #28a745;
+}
+
+.toggle-priming-btn.inactive {
+    color: #aaaaaa;
+}
+
+.priming-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+    gap: 8px;
+}
+
+.manage-btn {
+    background-color: transparent;
+    border: 1px solid #444444;
+    color: #dddddd;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.manage-btn:hover {
+    background-color: #444444;
     color: #ffffff;
 }
 
-.toggle-debug-btn {
+.info-button {
     background: none;
     border: none;
+    color: #ff4444;
     cursor: pointer;
-    color: #aaaaaa;
-}
-
-.debug-content {
-    padding: 15px;
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.rate-limits-section, .payload-section {
-    margin-bottom: 15px;
-}
-
-.rate-limits-section h4, .payload-section h4 {
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-    color: #aaaaaa;
-}
-
-.limit-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    color: #dddddd;
-}
-
-#request-payload {
-    background-color: #333333;
-    padding: 10px;
-    border-radius: 4px;
     font-size: 0.8rem;
-    max-height: 100px;
-    overflow-y: auto;
-    white-space: pre-wrap;
+    vertical-align: middle;
+}
+
+.info-box {
+    background-color: #3a3a3a;
+    border: 1px solid #4d4d4d;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 8px 0;
+    font-size: 0.85rem;
     color: #dddddd;
+}
+
+.info-box p {
+    margin-bottom: 8px;
+}
+
+.info-box p:last-child {
+    margin-bottom: 0;
+}
+
+.debug-panel.collapsed {
+    transform: translateY(calc(100% - 40px));
 }
 
 /* Loading indicator */
@@ -729,4 +874,480 @@
     .sidebar-section-mobile {
         display: block;
     }
+}
+
+/* Priming Prompts Management */
+.manage-priming-section {
+    margin-bottom: 20px;
+}
+
+.manage-priming-section h4 {
+    color: #dddddd;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.manage-priming-list {
+    margin-bottom: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: #2d2d2d;
+}
+
+.manage-priming-item {
+    display: flex;
+    align-items: center;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.manage-priming-item:hover {
+    background-color: #3d3d3d;
+}
+
+.manage-priming-item.dragging {
+    opacity: 0.7;
+    background-color: #444444;
+    border: 1px dashed #ff4444;
+}
+
+.manage-drag-handle {
+    cursor: move;
+    color: #888888;
+    padding: 0 8px;
+}
+
+.manage-prompt-info {
+    flex-grow: 1;
+    padding: 0 8px;
+}
+
+.manage-prompt-title {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.manage-prompt-description {
+    font-size: 0.75rem;
+    color: #aaaaaa;
+}
+
+.manage-prompt-position {
+    background-color: #444444;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: #dddddd;
+    margin-right: 8px;
+}
+
+.manage-prompt-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.manage-prompt-actions button {
+    background: none;
+    border: none;
+    color: #aaaaaa;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.manage-prompt-actions button:hover {
+    color: #ffffff;
+}
+
+.remove-priming-btn:hover {
+    color: #ff4444;
+}
+
+.available-prompts-list {
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: #2d2d2d;
+}
+
+.available-prompt-item {
+    display: flex;
+    align-items: center;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.available-prompt-item:hover {
+    background-color: #3d3d3d;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.available-prompt-info {
+    flex-grow: 1;
+    padding-right: 10px;
+}
+
+.available-prompt-title {
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 3px;
+    font-size: 0.9rem;
+}
+
+.available-prompt-description {
+    color: #aaaaaa;
+    font-size: 0.8rem;
+}
+
+.add-priming-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.add-priming-btn:hover {
+    background-color: #218838;
+    transform: scale(1.1);
+}
+
+.search-box {
+    margin-bottom: 10px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #ff4444;
+    box-shadow: 0 0 0 2px rgba(255, 68, 68, 0.2);
+}
+
+/* Compound Prompt Styles */
+.selectable-prompts-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: #2d2d2d;
+    margin-top: 8px;
+}
+
+.selectable-prompt-item {
+    display: flex;
+    align-items: center;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.selectable-prompt-item:hover {
+    background-color: #3d3d3d;
+}
+
+.selectable-prompt-item.selected {
+    background-color: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.selectable-prompt-checkbox {
+    margin-right: 12px;
+}
+
+.selectable-prompt-info {
+    flex-grow: 1;
+}
+
+.selectable-prompt-title {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.selectable-prompt-description {
+    font-size: 0.75rem;
+    color: #aaaaaa;
+}
+
+.compound-preview {
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.compound-preview-content {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #ffffff;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+    white-space: pre-wrap;
+    background-color: #333333;
+}
+
+/* Selected prompt note styles */
+.selected-prompt-note {
+    font-size: 0.85rem;
+    color: #ffffff;
+    margin-top: 10px;
+    background-color: rgba(255, 68, 68, 0.15);
+    padding: 8px 12px;
+    border-radius: 4px;
+    border-left: 3px solid #ff4444;
+}
+
+/* Compound Prompt Styles */
+.compound-prompt-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+.compound-prompt-modal.show {
+    display: block;
+}
+
+.compound-prompt-modal-content {
+    background-color: #2d2d2d;
+    margin: 50px auto;
+    max-width: 700px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    animation: modalFadeIn 0.3s;
+}
+
+.compound-prompt-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #3a3a3a;
+    border-bottom: 1px solid #4d4d4d;
+}
+
+.compound-prompt-modal-header h3 {
+    color: #ff4444;
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.compound-prompt-modal-body {
+    padding: 20px;
+}
+
+.compound-prompt-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #4d4d4d;
+}
+
+.compound-form-group {
+    margin-bottom: 15px;
+}
+
+.compound-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.compound-form-group input,
+.compound-form-group textarea {
+    width: 100%;
+    background-color: #3a3a3a;
+    border: 1px solid #4d4d4d;
+    color: #ffffff;
+    padding: 10px 12px;
+    border-radius: 4px;
+}
+
+.compound-form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.compound-section {
+    margin-bottom: 20px;
+}
+
+.compound-section h4 {
+    color: #e0e0e0;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.selectable-prompts-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px;
+    background-color: #2d2d2d;
+    margin-top: 8px;
+}
+
+.selectable-prompt-item {
+    display: flex;
+    align-items: center;
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.selectable-prompt-item:hover {
+    background-color: #3d3d3d;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.selectable-prompt-item.selected {
+    background-color: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.selectable-prompt-checkbox {
+    margin-right: 12px;
+}
+
+.selectable-prompt-info {
+    flex-grow: 1;
+}
+
+.selectable-prompt-title {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.selectable-prompt-description {
+    font-size: 0.75rem;
+    color: #aaaaaa;
+}
+
+.compound-preview {
+    background-color: #333333;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.compound-preview-content {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #ffffff;
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.5);
+    white-space: pre-wrap;
+    background-color: #333333;
+}
+
+/* Modern Scrollbars */
+/* For Webkit browsers (Chrome, Safari, Opera) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #242424;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3d3d3d;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 68, 68, 0.6);
+}
+
+::-webkit-scrollbar-corner {
+    background: #242424;
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #3d3d3d #242424;
+}
+
+/* Specific scrollable elements */
+.messages-container::-webkit-scrollbar-thumb,
+.priming-prompts-list::-webkit-scrollbar-thumb,
+.available-prompts-list::-webkit-scrollbar-thumb,
+.prompt-content-preview::-webkit-scrollbar-thumb,
+.selectable-prompts-list::-webkit-scrollbar-thumb,
+.compound-preview::-webkit-scrollbar-thumb {
+    background: rgba(255, 68, 68, 0.4);
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover,
+.priming-prompts-list::-webkit-scrollbar-thumb:hover,
+.available-prompts-list::-webkit-scrollbar-thumb:hover,
+.prompt-content-preview::-webkit-scrollbar-thumb:hover,
+.selectable-prompts-list::-webkit-scrollbar-thumb:hover,
+.compound-preview::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 68, 68, 0.8);
 } 
