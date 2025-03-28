@@ -1,16 +1,50 @@
 [
   {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "username": "admin",
+      "email": "admin@example.com",
+      "password": "pbkdf2_sha256$720000$GqG7WvjG6jHyJmrJDmJQnx$y7BtjZcIe155zq8GJnG3uPuTeMbIp8FShJJxWbp4TiA=",
+      "is_superuser": true,
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2024-03-28T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.category",
+    "pk": 1,
+    "fields": {
+      "name": "General",
+      "description": "General purpose prompts"
+    }
+  },
+  {
+    "model": "core.category",
+    "pk": 2,
+    "fields": {
+      "name": "Coding",
+      "description": "Programming and development prompts"
+    }
+  },
+  {
     "model": "core.prompt",
     "pk": 1,
     "fields": {
       "title": "Creative Writing Assistant",
-      "prompt": "Act as a creative writing assistant to help me craft engaging stories with compelling characters and vivid descriptions.",
-      "system_prompt": "You are a creative writing assistant with expertise in crafting engaging narratives, developing compelling characters, and writing vivid descriptions. Help the user improve their writing with constructive feedback and creative suggestions.",
-      "user": null,
+      "content": "Act as a creative writing assistant to help me craft engaging stories with compelling characters and vivid descriptions.",
+      "author": 1,
+      "description": "Helps with creative writing tasks",
+      "usage_count": 10,
+      "published": true,
       "created_at": "2024-03-28T00:00:00Z",
       "updated_at": "2024-03-28T00:00:00Z",
-      "liked_by_count": 10,
-      "category": "creative"
+      "total_votes": 5,
+      "total_comments": 2,
+      "is_priming": false,
+      "priming_order": 0,
+      "categories": [1]
     }
   },
   {
@@ -18,13 +52,18 @@
     "pk": 2,
     "fields": {
       "title": "Python Coding Tutor",
-      "prompt": "Act as a Python coding tutor to help me learn programming concepts and solve coding challenges.",
-      "system_prompt": "You are a patient and knowledgeable Python programming tutor. Explain concepts clearly, provide helpful examples, and guide the user through solving problems without giving away complete solutions immediately.",
-      "user": null,
+      "content": "Act as a Python coding tutor to help me learn programming concepts and solve coding challenges.",
+      "author": 1,
+      "description": "Helps with Python programming",
+      "usage_count": 8,
+      "published": true,
       "created_at": "2024-03-28T00:00:00Z",
       "updated_at": "2024-03-28T00:00:00Z",
-      "liked_by_count": 8,
-      "category": "programming"
+      "total_votes": 3,
+      "total_comments": 1,
+      "is_priming": false,
+      "priming_order": 0,
+      "categories": [2]
     }
   }
 ] 

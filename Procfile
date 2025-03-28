@@ -1,1 +1,1 @@
-web: gunicorn BlitzPrompt.wsgi:application 
+web: gunicorn app:app --config gunicorn_config.py 

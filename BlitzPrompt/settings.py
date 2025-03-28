@@ -139,24 +139,31 @@ if DATABASE_URL:
                 conn_health_checks=True,
             )
         }
-elif ON_RENDER:
-    # If we're on Render but DATABASE_URL is not set, use SQLite
-    print("DATABASE_URL not found but RENDER=True, using SQLite fallback")
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
 else:
-    # Use SQLite locally
-    print("Using SQLite database for local development")
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # SQLite configuration
+    print("Using SQLite database")
+    
+    # Handle Render's ephemeral filesystem
+    if ON_RENDER:
+        print("On Render: Using SQLite in writable /tmp directory")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': '/tmp/db.sqlite3',  # Use writable /tmp directory on Render
+                'OPTIONS': {
+                    'timeout': 30,  # Add timeout for better handling of concurrent requests
+                }
+            }
         }
-    }
+    else:
+        # Local development
+        print("Local development: Using SQLite in project directory")
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 # Print the current database configuration for debugging
 if 'default' in DATABASES and 'ENGINE' in DATABASES['default']:
