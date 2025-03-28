@@ -5,10 +5,12 @@ services:
     buildCommand: "./build.sh"
     startCommand: "gunicorn BlitzPrompt.wsgi:application"
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: "blitzprompt.onrender.com"
+        value: "blitzprompt.onrender.com,*.onrender.com"
       - key: SECRET_KEY
         generateValue: true
       - key: DEEPSEEK_API_KEY
