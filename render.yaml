@@ -10,9 +10,17 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: "blitzprompt.onrender.com,*.onrender.com"
+        value: "blitzprompt-q5x7.onrender.com,*.onrender.com"
       - key: SECRET_KEY
         generateValue: true
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blitzprompt_db
+          property: connectionString
+    plan: free
+
+databases:
+  - name: blitzprompt_db
     plan: free
