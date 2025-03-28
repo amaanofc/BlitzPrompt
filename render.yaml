@@ -3,12 +3,10 @@ services:
     name: blitzprompt
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn -c gunicorn_config.py"
+    startCommand: "gunicorn BlitzPrompt.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: PYTHONPATH
-        value: "/opt/render/project/src"
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
@@ -17,4 +15,6 @@ services:
         generateValue: true
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: PORT
+        value: 10000
     plan: free
