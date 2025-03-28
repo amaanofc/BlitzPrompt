@@ -260,14 +260,14 @@
   <div class="sidebar conversations-sidebar" id="conversationsSidebar">
     <div class="sidebar-header">
       <h3>Conversations</h3>
-      <button class="new-chat-btn" id="newChatBtn">
-        <i class="fas fa-plus"></i> New Chat
-      </button>
       <button class="sidebar-toggle" id="toggleConversationsSidebar">
         <i class="fas fa-chevron-left"></i>
       </button>
     </div>
     <div class="sidebar-content">
+      <button class="new-chat-btn" id="newChatBtn">
+        <i class="fas fa-plus"></i> New Chat
+      </button>
       <div class="sidebar-section">
         <h3>Recent</h3>
         <div class="conversations-list" id="conversationsList">
@@ -307,9 +307,6 @@
         </div>
         <button class="mobile-sidebar-toggle" id="mobilePromptsToggle">
           <i class="fas fa-sliders-h"></i>
-        </button>
-        <button class="sidebar-toggle" id="togglePromptsSidebar">
-          <i class="fas fa-chevron-right"></i>
         </button>
       </div>
     </div>
@@ -393,7 +390,7 @@
   <!-- Prompts Sidebar -->
   <div class="sidebar prompts-sidebar" id="promptsSidebar">
     <div class="sidebar-header">
-      <button class="sidebar-toggle" id="togglePromptsSidebar2">
+      <button class="sidebar-toggle" id="togglePromptsSidebar">
         <i class="fas fa-chevron-right"></i>
       </button>
       <h3>Prompts</h3>
@@ -700,9 +697,6 @@
     const togglePromptsSidebar = document.getElementById(
       "togglePromptsSidebar"
     );
-    const togglePromptsSidebar2 = document.getElementById(
-      "togglePromptsSidebar2"
-    );
     const mobileConversationsToggle = document.getElementById(
       "mobileConversationsToggle"
     );
@@ -730,17 +724,40 @@
     const quickCreateStatus = document.getElementById("quickCreateStatus");
     const quickStatusMessage = document.getElementById("quickStatusMessage");
 
+    // Selected prompt container
+    const selectedPromptContainer = document.getElementById(
+      "selectedPromptContainer"
+    );
+    const selectedPromptTitle = document.getElementById("selectedPromptTitle");
+    const clearPromptBtn = document.getElementById("clear-prompt-btn");
+
     // Sidebar toggles
     toggleConversationsSidebar.addEventListener("click", function () {
       conversationsSidebar.classList.toggle("closed");
+
+      // Change arrow direction
+      const icon = this.querySelector("i");
+      if (conversationsSidebar.classList.contains("closed")) {
+        icon.classList.remove("fa-chevron-left");
+        icon.classList.add("fa-chevron-right");
+      } else {
+        icon.classList.remove("fa-chevron-right");
+        icon.classList.add("fa-chevron-left");
+      }
     });
 
     togglePromptsSidebar.addEventListener("click", function () {
       promptsSidebar.classList.toggle("closed");
-    });
 
-    togglePromptsSidebar2.addEventListener("click", function () {
-      promptsSidebar.classList.toggle("closed");
+      // Change arrow direction
+      const icon = this.querySelector("i");
+      if (promptsSidebar.classList.contains("closed")) {
+        icon.classList.remove("fa-chevron-right");
+        icon.classList.add("fa-chevron-left");
+      } else {
+        icon.classList.remove("fa-chevron-left");
+        icon.classList.add("fa-chevron-right");
+      }
     });
 
     // Mobile sidebar toggles
@@ -791,12 +808,6 @@
     });
 
     // Selected prompt handling
-    const selectedPromptContainer = document.getElementById(
-      "selectedPromptContainer"
-    );
-    const selectedPromptTitle = document.getElementById("selectedPromptTitle");
-    const clearPromptBtn = document.getElementById("clear-prompt-btn");
-
     clearPromptBtn.addEventListener("click", function () {
       clearSelectedPrompt();
     });
@@ -1185,6 +1196,56 @@
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
+
+    // Set initial state for sidebars if needed
+    if (window.innerWidth < 992) {
+      conversationsSidebar.classList.add("closed");
+      promptsSidebar.classList.add("closed");
+
+      // Update toggle button icons
+      toggleConversationsSidebar
+        .querySelector("i")
+        .classList.remove("fa-chevron-left");
+      toggleConversationsSidebar
+        .querySelector("i")
+        .classList.add("fa-chevron-right");
+
+      togglePromptsSidebar
+        .querySelector("i")
+        .classList.remove("fa-chevron-right");
+      togglePromptsSidebar.querySelector("i").classList.add("fa-chevron-left");
+    }
+
+    // Handle window resize
+    window.addEventListener("resize", function () {
+      if (window.innerWidth < 992) {
+        if (
+          !conversationsSidebar.classList.contains("closed") &&
+          !conversationsSidebar.classList.contains("mobile-open")
+        ) {
+          conversationsSidebar.classList.add("closed");
+          toggleConversationsSidebar
+            .querySelector("i")
+            .classList.remove("fa-chevron-left");
+          toggleConversationsSidebar
+            .querySelector("i")
+            .classList.add("fa-chevron-right");
+        }
+
+        if (
+          !promptsSidebar.classList.contains("closed") &&
+          !promptsSidebar.classList.contains("mobile-open")
+        ) {
+          promptsSidebar.classList.add("closed");
+          togglePromptsSidebar
+            .querySelector("i")
+            .classList.remove("fa-chevron-right");
+          togglePromptsSidebar
+            .querySelector("i")
+            .classList.add("fa-chevron-left");
+        }
+      }
+    });
 
     // New Chat button
     document
