@@ -3,7 +3,7 @@ services:
     name: blitzprompt
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn wsgi:application"
+    startCommand: "./start.sh"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
