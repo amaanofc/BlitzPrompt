@@ -89,15 +89,23 @@ WSGI_APPLICATION = 'BlitzPrompt.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Check if we're on Render
+ON_RENDER = os.environ.get('RENDER', False)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL:
+if ON_RENDER or DATABASE_URL:
     # Use PostgreSQL on Render
+    print(f"Using PostgreSQL database with URL: {DATABASE_URL if DATABASE_URL else 'Not provided'}")
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
     # Use SQLite locally
+    print("Using SQLite database")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

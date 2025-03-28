@@ -19,6 +19,8 @@ services:
         fromDatabase:
           name: blitzprompt_db
           property: connectionString
+      - key: RENDER
+        value: true
     plan: free
 
 databases:
