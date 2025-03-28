@@ -169,47 +169,50 @@
   (function initCommentSystem() {
     if (window.commentSystemInitialized) return;
     window.commentSystemInitialized = true;
-    
+
     // Track active submissions using a Map
     const activeSubmissions = new Map();
 
     // Comment form handling
-    const commentForm = document.getElementById('comment-form');
+    const commentForm = document.getElementById("comment-form");
     if (commentForm) {
-        // Create a fresh form element to remove any existing listeners
-        const cleanForm = commentForm.cloneNode(true);
-        commentForm.replaceWith(cleanForm);
-        
-        cleanForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formKey = 'main-comment-form';
-            
-            if (activeSubmissions.has(formKey)) return;
-            activeSubmissions.set(formKey, true);
-            
-            const submitButton = this.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+      // Create a fresh form element to remove any existing listeners
+      const cleanForm = commentForm.cloneNode(true);
+      commentForm.replaceWith(cleanForm);
 
-            try {
-                const content = document.getElementById("comment-content").value;
-                const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
-                    },
-                    body: JSON.stringify({ content: content }),
-                });
+      cleanForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const formKey = "main-comment-form";
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to post comment');
-                }
+        if (activeSubmissions.has(formKey)) return;
+        activeSubmissions.set(formKey, true);
 
-                const data = await response.json();
-                if (response.ok) {
-                    const commentHtml = `
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Posting...';
+
+        try {
+          const content = document.getElementById("comment-content").value;
+          const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+            body: JSON.stringify({ content: content }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to post comment");
+          }
+
+          const data = await response.json();
+          if (response.ok) {
+            const commentHtml = `
                         <div class="card mb-3 comment-card" data-comment-id="${data.id}">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
@@ -225,39 +228,41 @@
                         </div>
                     `;
 
-                    document.getElementById("comments-list").insertAdjacentHTML("afterbegin", commentHtml);
-                    document.getElementById("comment-content").value = "";
-                } else {
-                    // Show error message
-                    showNotification(data.error || "Error posting comment", "danger");
-                }
-            } catch (error) {
-                showNotification(error.message, "danger");
-                console.error("Error posting comment:", error);
-            } finally {
-                activeSubmissions.delete(formKey);
-                submitButton.disabled = false;
-                submitButton.innerHTML = 'Post Comment';
-            }
-        });
+            document
+              .getElementById("comments-list")
+              .insertAdjacentHTML("afterbegin", commentHtml);
+            document.getElementById("comment-content").value = "";
+          } else {
+            // Show error message
+            showNotification(data.error || "Error posting comment", "danger");
+          }
+        } catch (error) {
+          showNotification(error.message, "danger");
+          console.error("Error posting comment:", error);
+        } finally {
+          activeSubmissions.delete(formKey);
+          submitButton.disabled = false;
+          submitButton.innerHTML = "Post Comment";
+        }
+      });
     }
 
     // Reply handling with event delegation
-    document.body.addEventListener('click', async function(e) {
-        if (e.target.closest('.reply-btn')) {
-            const btn = e.target.closest('.reply-btn');
-            const commentId = btn.dataset.commentId;
-            const formKey = `reply-${commentId}`;
-            
-            if (activeSubmissions.has(formKey)) return;
-            activeSubmissions.set(formKey, true);
-            
-            const repliesDiv = btn.nextElementSibling;
+    document.body.addEventListener("click", async function (e) {
+      if (e.target.closest(".reply-btn")) {
+        const btn = e.target.closest(".reply-btn");
+        const commentId = btn.dataset.commentId;
+        const formKey = `reply-${commentId}`;
 
-            if (!repliesDiv.querySelector(".reply-form")) {
-                const replyForm = document.createElement("form");
-                replyForm.className = "reply-form mt-2";
-                replyForm.innerHTML = `
+        if (activeSubmissions.has(formKey)) return;
+        activeSubmissions.set(formKey, true);
+
+        const repliesDiv = btn.nextElementSibling;
+
+        if (!repliesDiv.querySelector(".reply-form")) {
+          const replyForm = document.createElement("form");
+          replyForm.className = "reply-form mt-2";
+          replyForm.innerHTML = `
                     <div class="mb-2">
                         <textarea class="form-control" rows="2" placeholder="Write a reply..."></textarea>
                     </div>
@@ -265,36 +270,37 @@
                     <button type="button" class="btn btn-sm btn-secondary cancel-reply">Cancel</button>
                 `;
 
-                repliesDiv.appendChild(replyForm);
+          repliesDiv.appendChild(replyForm);
 
-                replyForm.addEventListener("submit", async function (e) {
-                    e.preventDefault();
-                    const content = this.querySelector("textarea").value;
-                    const submitButton = this.querySelector('button[type="submit"]');
+          replyForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const content = this.querySelector("textarea").value;
+            const submitButton = this.querySelector('button[type="submit"]');
 
-                    if (!content.trim()) return;
-                    
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+            if (!content.trim()) return;
 
-                    try {
-                        const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRFToken": document.querySelector(
-                                    "[name=csrfmiddlewaretoken]"
-                                ).value,
-                            },
-                            body: JSON.stringify({
-                                content: content,
-                                parent_id: commentId,
-                            }),
-                        });
+            submitButton.disabled = true;
+            submitButton.innerHTML =
+              '<i class="fas fa-spinner fa-spin"></i> Posting...';
 
-                        const data = await response.json();
-                        if (response.ok) {
-                            const replyHtml = `
+            try {
+              const response = await fetch(`/add-comment/{{ prompt.id }}/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": document.querySelector(
+                    "[name=csrfmiddlewaretoken]"
+                  ).value,
+                },
+                body: JSON.stringify({
+                  content: content,
+                  parent_id: commentId,
+                }),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+                const replyHtml = `
                                 <div class="card mt-2 reply-card" data-comment-id="${data.id}">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between">
@@ -306,39 +312,39 @@
                                 </div>
                             `;
 
-                            repliesDiv.insertAdjacentHTML("beforeend", replyHtml);
-                            this.remove();
-                        } else {
-                            // Show error message
-                            showNotification(data.error || "Error posting reply", "danger");
-                            
-                            // Re-enable button if there's an error
-                            submitButton.disabled = false;
-                            submitButton.innerHTML = 'Reply';
-                        }
-                    } catch (error) {
-                        console.error("Error posting reply:", error);
-                        showNotification("Network error. Please try again.", "danger");
-                        
-                        // Re-enable button if there's an error
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = 'Reply';
-                    } finally {
-                        activeSubmissions.delete(formKey);
-                        if (replyForm.isConnected) {
-                            submitButton.disabled = false;
-                            submitButton.innerHTML = 'Reply';
-                        }
-                    }
-                });
+                repliesDiv.insertAdjacentHTML("beforeend", replyHtml);
+                this.remove();
+              } else {
+                // Show error message
+                showNotification(data.error || "Error posting reply", "danger");
 
-                replyForm
-                    .querySelector(".cancel-reply")
-                    .addEventListener("click", function () {
-                        replyForm.remove();
-                    });
+                // Re-enable button if there's an error
+                submitButton.disabled = false;
+                submitButton.innerHTML = "Reply";
+              }
+            } catch (error) {
+              console.error("Error posting reply:", error);
+              showNotification("Network error. Please try again.", "danger");
+
+              // Re-enable button if there's an error
+              submitButton.disabled = false;
+              submitButton.innerHTML = "Reply";
+            } finally {
+              activeSubmissions.delete(formKey);
+              if (replyForm.isConnected) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = "Reply";
+              }
             }
+          });
+
+          replyForm
+            .querySelector(".cancel-reply")
+            .addEventListener("click", function () {
+              replyForm.remove();
+            });
         }
+      }
     });
 
     // Voting functionality

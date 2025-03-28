@@ -345,6 +345,7 @@ def create_prompt(request):
             content = request.POST.get('content')
             description = request.POST.get('description')
             categories = request.POST.getlist('categories')
+            new_category = request.POST.get('new_category', '').strip()
             is_priming = request.POST.get('is_priming') == 'on'
             priming_order = int(request.POST.get('priming_order', 0))
             
@@ -399,6 +400,21 @@ def create_prompt(request):
                 # Add categories if any
                 if categories:
                     prompt.categories.set(categories)
+                
+                # Handle new category creation
+                if new_category:
+                    # Check if the category already exists (case insensitive)
+                    existing_category = Category.objects.filter(name__iexact=new_category).first()
+                    if existing_category:
+                        # Use existing category
+                        prompt.categories.add(existing_category)
+                    else:
+                        # Create new category
+                        new_cat = Category.objects.create(
+                            name=new_category,
+                            description=f"User-created category: {new_category}"
+                        )
+                        prompt.categories.add(new_cat)
                 
                 # If it's a priming prompt, add to favorites automatically
                 if is_priming:
