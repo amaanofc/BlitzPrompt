@@ -1,0 +1,356 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Create Prompt - BlitzPrompt{% endblock %}
+
+{% block extra_css %}
+<style>
+  .prompt-form-container {
+    background-color: #2d2d2d;
+    border-radius: 10px;
+    padding: 30px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  .prompt-form-title {
+    color: #ff4444;
+    margin-bottom: 25px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .form-label {
+    color: #e0e0e0;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  
+  .form-control {
+    background-color: #3a3a3a;
+    border: 1px solid #4d4d4d;
+    color: #ffffff;
+    padding: 12px 15px;
+    border-radius: 6px;
+    transition: all 0.3s;
+  }
+  
+  .form-control:focus {
+    background-color: #404040;
+    box-shadow: 0 0 0 0.2rem rgba(255, 68, 68, 0.25);
+    border-color: #ff4444;
+  }
+  
+  .form-text {
+    color: #bbbbbb;
+    font-size: 0.85rem;
+  }
+  
+  .category-badge {
+    background-color: #3a3a3a;
+    border: 1px solid #4d4d4d;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 30px;
+    display: inline-block;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .category-badge.selected {
+    background-color: #ff4444;
+    border-color: #ff4444;
+  }
+  
+  .preview-container {
+    background-color: #3a3a3a;
+    border: 1px solid #4d4d4d;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    min-height: 100px;
+  }
+  
+  .preview-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ff4444;
+    margin-bottom: 10px;
+  }
+  
+  .preview-description {
+    color: #bbbbbb;
+    font-style: italic;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+  }
+  
+  .preview-content {
+    color: #ffffff;
+    white-space: pre-wrap;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+    border-left: 3px solid #ff4444;
+  }
+  
+  .help-card {
+    background-color: #3a3a3a;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .help-card h5 {
+    color: #ff4444;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .help-card p {
+    color: #dddddd;
+    font-size: 0.95rem;
+  }
+  
+  .help-example {
+    background-color: #2a2a2a;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 10px;
+    border-left: 3px solid #ff4444;
+  }
+  
+  .create-btn {
+    background-color: #ff4444;
+    border: none;
+    padding: 12px 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+  }
+  
+  .create-btn:hover {
+    background-color: #ff6666;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+  }
+  
+  #createStatus {
+    display: none;
+    margin-top: 15px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="prompt-form-container">
+        <h2 class="prompt-form-title"><i class="fas fa-magic me-2"></i> Create New Prompt</h2>
+        
+        <form id="promptForm">
+          {% csrf_token %}
+          
+          <div class="mb-4">
+            <label for="promptTitle" class="form-label">Title</label>
+            <input type="text" class="form-control" id="promptTitle" name="title" required placeholder="Give your prompt a clear, descriptive title">
+            <div class="form-text">A good title helps others understand what your prompt does.</div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="promptDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="promptDescription" name="description" rows="2" placeholder="Explain how to use this prompt and what it's good for"></textarea>
+            <div class="form-text">A helpful description will make your prompt more useful to others.</div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="promptContent" class="form-label">Prompt Content</label>
+            <textarea class="form-control" id="promptContent" name="content" rows="6" required placeholder="Enter the actual text of your prompt here..."></textarea>
+            <div class="form-text">This is the instruction that will be sent to the AI model.</div>
+          </div>
+          
+          <div class="mb-4">
+            <label class="form-label">Categories</label>
+            <div id="categoriesContainer">
+              {% for category in categories %}
+                <div class="category-badge" data-category-id="{{ category.id }}">
+                  {{ category.name }}
+                </div>
+              {% endfor %}
+            </div>
+            <div class="form-text">Select categories that best describe your prompt.</div>
+            <!-- Hidden field to store selected categories -->
+            <div id="selectedCategories"></div>
+          </div>
+          
+          <div class="mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="isPriming" name="is_priming">
+              <label class="form-check-label" for="isPriming">
+                Add to my priming prompts
+              </label>
+            </div>
+            <div class="form-text">Priming prompts are used at the beginning of every conversation.</div>
+          </div>
+          
+          <div class="mb-4" id="primingOrderField" style="display: none;">
+            <label for="primingOrder" class="form-label">Priming Order</label>
+            <input type="number" class="form-control" id="primingOrder" name="priming_order" value="0" min="0">
+            <div class="form-text">Lower numbers are applied first.</div>
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center">
+            <button type="submit" class="btn create-btn">
+              <i class="fas fa-plus-circle me-2"></i> Create Prompt
+            </button>
+            <a href="{% url 'prompt_library' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+          
+          <div id="createStatus" class="alert">
+            <span id="statusMessage"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="sticky-top" style="top: 80px;">
+        <div class="help-card">
+          <h5><i class="fas fa-lightbulb me-2"></i> Prompt Preview</h5>
+          <p>This is how your prompt will appear to others:</p>
+          <div class="preview-container">
+            <div class="preview-title" id="previewTitle">Your Prompt Title</div>
+            <div class="preview-description" id="previewDescription">Your prompt description will appear here...</div>
+            <div class="preview-content" id="previewContent">Your prompt content will appear here...</div>
+          </div>
+        </div>
+        
+        <div class="help-card">
+          <h5><i class="fas fa-info-circle me-2"></i> Writing Good Prompts</h5>
+          <p>Effective prompts are clear, specific, and provide enough context. Here are some tips:</p>
+          <ul>
+            <li>Be specific about what you want the AI to do</li>
+            <li>Include examples if helpful</li>
+            <li>Define the format you want for the response</li>
+            <li>Specify any constraints or requirements</li>
+          </ul>
+          <div class="help-example">
+            <strong>Example:</strong> "You are a senior data scientist who specializes in explaining complex statistical concepts in simple terms. When I ask about a statistical method, explain it as if I'm a beginner with no technical background, use a real-world example, and include why it's useful."
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const promptForm = document.getElementById('promptForm');
+  const promptTitle = document.getElementById('promptTitle');
+  const promptDescription = document.getElementById('promptDescription');
+  const promptContent = document.getElementById('promptContent');
+  const isPriming = document.getElementById('isPriming');
+  const primingOrderField = document.getElementById('primingOrderField');
+  const createStatus = document.getElementById('createStatus');
+  const statusMessage = document.getElementById('statusMessage');
+  
+  // Preview elements
+  const previewTitle = document.getElementById('previewTitle');
+  const previewDescription = document.getElementById('previewDescription');
+  const previewContent = document.getElementById('previewContent');
+  
+  // Update preview as user types
+  promptTitle.addEventListener('input', function() {
+    previewTitle.textContent = this.value || 'Your Prompt Title';
+  });
+  
+  promptDescription.addEventListener('input', function() {
+    previewDescription.textContent = this.value || 'Your prompt description will appear here...';
+  });
+  
+  promptContent.addEventListener('input', function() {
+    previewContent.textContent = this.value || 'Your prompt content will appear here...';
+  });
+  
+  // Show/hide priming order field based on checkbox
+  isPriming.addEventListener('change', function() {
+    primingOrderField.style.display = this.checked ? 'block' : 'none';
+  });
+  
+  // Category selection
+  const categoryBadges = document.querySelectorAll('.category-badge');
+  const selectedCategoriesField = document.getElementById('selectedCategories');
+  
+  categoryBadges.forEach(badge => {
+    badge.addEventListener('click', function() {
+      this.classList.toggle('selected');
+      updateSelectedCategories();
+    });
+  });
+  
+  function updateSelectedCategories() {
+    const selected = document.querySelectorAll('.category-badge.selected');
+    const selectedIds = Array.from(selected).map(badge => badge.dataset.categoryId);
+    
+    // Remove any existing hidden inputs
+    while (selectedCategoriesField.firstChild) {
+      selectedCategoriesField.removeChild(selectedCategoriesField.firstChild);
+    }
+    
+    // Create new hidden inputs for each selected category
+    selectedIds.forEach(id => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'categories';
+      input.value = id;
+      selectedCategoriesField.appendChild(input);
+    });
+  }
+  
+  // Form submission
+  promptForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(promptForm);
+    
+    fetch('{% url "create_prompt" %}', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        createStatus.className = 'alert alert-success';
+        statusMessage.textContent = data.message;
+        
+        // Redirect to the prompt detail page or library
+        setTimeout(function() {
+          window.location.href = '/prompt/' + data.prompt_id + '/';
+        }, 1500);
+      } else {
+        createStatus.className = 'alert alert-danger';
+        statusMessage.textContent = data.error || 'An error occurred while creating the prompt.';
+      }
+      createStatus.style.display = 'block';
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      createStatus.className = 'alert alert-danger';
+      statusMessage.textContent = 'An unexpected error occurred. Please try again.';
+      createStatus.style.display = 'block';
+    });
+  });
+});
+</script>
+{% endblock %} 

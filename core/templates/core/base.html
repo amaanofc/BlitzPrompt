@@ -9,9 +9,14 @@
       rel="stylesheet"
     />
     <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    {% block extra_css %}{% endblock %}
     <style>
       body {
         font-family: "Inter", sans-serif;
@@ -149,6 +154,56 @@
         background-color: #ff6666;
         border-color: #ff6666;
       }
+      
+      .chat-button {
+        background-color: #ff4444;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      
+      .chat-button:hover {
+        background-color: #ff6666;
+        color: white;
+      }
+      
+      /* Mobile banner for easy access to chat */
+      .mobile-chat-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #ff4444;
+        color: white;
+        text-align: center;
+        padding: 10px;
+        z-index: 1000;
+        display: none;
+      }
+      
+      .mobile-chat-banner a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      @media (max-width: 768px) {
+        .mobile-chat-banner {
+            display: block;
+        }
+        body {
+            padding-bottom: 50px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -165,17 +220,29 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
-            {% if user.is_authenticated %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'interface' %}">Interface</a>
+              <a class="nav-link" href="{% url 'home' %}">
+                <i class="fas fa-home me-1"></i> Home
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'prompt_library' %}">Library</a>
+              <a class="nav-link" href="{% url 'interface' %}">
+                <i class="fas fa-robot me-1"></i> Chat
+              </a>
             </li>
-            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'prompt_library' %}">
+                <i class="fas fa-book me-1"></i> Library
+              </a>
+            </li>
           </ul>
           <ul class="navbar-nav">
             {% if user.is_authenticated %}
+            <li class="nav-item me-2">
+              <a href="{% url 'interface' %}" class="chat-button">
+                <i class="fas fa-comment-dots"></i> Start Chatting
+              </a>
+            </li>
             <li class="nav-item dropdown">
               <a
                 class="nav-link dropdown-toggle"
@@ -184,30 +251,45 @@
                 role="button"
                 data-bs-toggle="dropdown"
               >
-                {{ user.username }}
+                <i class="fas fa-user me-1"></i> {{ user.username }}
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
+                  <a class="dropdown-item" href="{% url 'profile' %}">
+                    <i class="fas fa-user-circle me-2"></i> Profile
+                  </a>
                 </li>
                 <li>
-                  <a class="dropdown-item" href="{% url 'favorites' %}">Favorites</a>
+                  <a class="dropdown-item" href="{% url 'favorites' %}">
+                    <i class="fas fa-star me-2"></i> Favorites
+                  </a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
                   <form method="post" action="{% url 'logout' %}" class="d-inline w-100">
                     {% csrf_token %}
-                    <button type="submit" class="dropdown-item">Logout</button>
+                    <button type="submit" class="dropdown-item">
+                      <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </button>
                   </form>
                 </li>
               </ul>
             </li>
             {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Login</a>
+            <li class="nav-item me-2">
+              <a href="{% url 'interface' %}" class="chat-button">
+                <i class="fas fa-robot"></i> Try It Now
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
+              <a class="nav-link" href="{% url 'login' %}">
+                <i class="fas fa-sign-in-alt me-1"></i> Login
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'signup' %}">
+                <i class="fas fa-user-plus me-1"></i> Sign Up
+              </a>
             </li>
             {% endif %}
           </ul>
@@ -216,6 +298,13 @@
     </nav>
 
     <div class="container mt-4">{% block content %} {% endblock %}</div>
+    
+    <!-- Mobile banner for easy chat access -->
+    <div class="mobile-chat-banner">
+      <a href="{% url 'interface' %}">
+        <i class="fas fa-robot"></i> Try the Chat Interface
+      </a>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}

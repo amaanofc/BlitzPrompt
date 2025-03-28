@@ -17,4 +17,9 @@ urlpatterns = [
     path('favorites/', views.favorites, name='favorites'),
     path('create-prompt/', views.create_prompt, name='create_prompt'),
     path('api/prompt/<int:prompt_id>/', views.get_prompt_info, name='get_prompt_info'),
+    path('api/chat/', views.chat_api, name='chat_api'),
+    path('api/prompts/<int:prompt_id>/', views.prompt_api, name='prompt_api'),
+    path('api/conversations/', views.conversations_api, name='conversations_api'),
+    path('api/conversations/<int:conversation_id>/', views.conversation_detail_api, name='conversation_detail_api'),
+    path('api/rate-limits/', views.rate_limits_api, name='rate_limits_api'),
 ] 

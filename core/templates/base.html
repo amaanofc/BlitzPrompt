@@ -248,7 +248,7 @@
       }
 
       .list-group-item:hover {
-        background-color: var(--bg-darker);
+        background-color: rgba(255, 0, 0, 0.05);
       }
 
       .list-group-item.active {
@@ -285,6 +285,65 @@
           transform: translateY(-10px);
         }
       }
+
+      .chat-button {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: bold;
+        padding: 8px 16px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+      }
+      
+      .chat-button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255, 0, 0, 0.3);
+        color: white;
+      }
+
+      .chat-button i {
+        font-size: 1.1rem;
+      }
+      
+      /* Mobile banner */
+      .mobile-banner {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--primary-color);
+        color: white;
+        text-align: center;
+        padding: 10px;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+      }
+      
+      .mobile-banner a {
+        color: white;
+        font-weight: bold;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      @media (max-width: 768px) {
+        .mobile-banner {
+          display: block;
+        }
+        
+        body {
+          padding-bottom: 50px;
+        }
+      }
     </style>
   </head>
 
@@ -306,18 +365,28 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
+              <a class="nav-link" href="{% url 'home' %}">
+                <i class="fas fa-home me-1"></i> Home
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link" href="{% url 'interface' %}">
-                <i class="fas fa-robot me-1"></i>Interface
+                <i class="fas fa-comment-dots me-1"></i> Chat Interface
               </a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'prompt_library' %}">
-                <i class="fas fa-book me-1"></i>Library
+                <i class="fas fa-book me-1"></i> Browse Library
               </a>
             </li>
           </ul>
           <ul class="navbar-nav">
             {% if user.is_authenticated %}
+            <li class="nav-item mx-2">
+              <a href="{% url 'interface' %}" class="chat-button">
+                <i class="fas fa-robot"></i> Start Chatting
+              </a>
+            </li>
             <li class="nav-item dropdown">
               <a
                 class="nav-link dropdown-toggle"
@@ -330,30 +399,40 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <a class="dropdown-item" href="{% url 'profile' %}"
-                    >Profile</a
-                  >
+                  <a class="dropdown-item" href="{% url 'profile' %}">
+                    <i class="fas fa-user-circle me-2"></i> Profile
+                  </a>
                 </li>
                 <li>
-                  <a class="dropdown-item" href="{% url 'favorites' %}"
-                    >Favorites</a
-                  >
+                  <a class="dropdown-item" href="{% url 'favorites' %}">
+                    <i class="fas fa-star me-2"></i> Favorites
+                  </a>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
-                  <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+                  <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item">
+                      <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </button>
+                  </form>
                 </li>
               </ul>
             </li>
             {% else %}
+            <li class="nav-item mx-2">
+              <a href="{% url 'interface' %}" class="chat-button">
+                <i class="fas fa-robot"></i> Try It Now
+              </a>
+            </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'login' %}">
-                <i class="fas fa-sign-in-alt me-1"></i>Login
+                <i class="fas fa-sign-in-alt me-1"></i> Login
               </a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'signup' %}">
-                <i class="fas fa-user-plus me-1"></i>Sign Up
+                <i class="fas fa-user-plus me-1"></i> Sign Up
               </a>
             </li>
             {% endif %}
@@ -391,5 +470,12 @@
 
     <!-- Extra JavaScript -->
     {% block extra_js %}{% endblock %}
+
+    <!-- Mobile Banner -->
+    <div class="mobile-banner">
+      <a href="{% url 'interface' %}">
+        <i class="fas fa-robot"></i> Try the Chat Interface
+      </a>
+    </div>
   </body>
 </html>

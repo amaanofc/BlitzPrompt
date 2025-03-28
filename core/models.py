@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.conf import settings
 
 class Category(models.Model):
     name = models.CharField(max_length=50)
@@ -50,15 +51,81 @@ class Vote(models.Model):
 
 class Comment(models.Model):
     prompt = models.ForeignKey(Prompt, on_delete=models.CASCADE, related_name='comments')
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    is_edited = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Comment by {self.author.username} on {self.prompt.title}"
 
     class Meta:
-        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['prompt', 'author', 'content'],
+                name='unique_comment_per_author',
+                condition=models.Q(parent__isnull=True)
+            ),
+            models.UniqueConstraint(
+                fields=['parent', 'author', 'content'],
+                name='unique_reply_per_author',
+                condition=models.Q(parent__isnull=False)
+            )
+        ]
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
+
+class Conversation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
+    title = models.CharField(max_length=255, default="New Chat")
+    system_prompt = models.TextField(default="You are a helpful AI assistant that provides clear and concise responses.")
+    priming_prompts = models.ManyToManyField(Prompt, blank=True, related_name='conversations_using')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+    
+    @property
+    def preview(self):
+        """Return a preview of the last message"""
+        last_message = self.messages.exclude(role='system').order_by('-created_at').first()
+        if last_message:
+            return last_message.content[:50] + "..." if len(last_message.content) > 50 else last_message.content
+        return "No messages yet"
+    
+    class Meta:
+        ordering = ['-updated_at']
+
+class Message(models.Model):
+    ROLE_CHOICES = (
+        ('system', 'System'),
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    )
+    
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    prompt_used = models.ForeignKey(Prompt, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.role} message in {self.conversation.title}"
+    
+    class Meta:
+        ordering = ['created_at']
+
+class APIUsage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='api_usage')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    requests_count = models.IntegerField(default=1)
+    tokens_count = models.IntegerField(default=0)
+    model = models.CharField(max_length=50, default='deepseek-chat')
+    
+    def __str__(self):
+        return f"API usage by {self.user.username} at {self.timestamp}"
+    
+    class Meta:
+        ordering = ['-timestamp']
